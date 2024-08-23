@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import AppDataSource from './databases/typeorm.config';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -8,7 +9,7 @@ import AppDataSource from './databases/typeorm.config';
       ...AppDataSource.options,
     }),
   ],
-  controllers: [],
+  controllers: [AppController],
   providers: [],
 })
 export class AppModule {}
