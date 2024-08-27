@@ -6,11 +6,11 @@ import { successCode } from './const/success-message';
 
 @Controller()
 export class AppController {
-  constructor() {}
+	constructor() {}
 
-  @Get()
-  index(@Res() response: Response): Response {
-    const message = `Service ${APP_NAME} is running.`;
-    return ApiResponse.success(response, message, successCode.SCDTDT0000);
-  }
+	@Get()
+	index(@Res() response: Response): Response {
+		const message = `Service ${APP_NAME} is running.`;
+		return ApiResponse.success(response, message, successCode.SCDTDT0000);
+	}
 }

@@ -1,0 +1,41 @@
+version: "3"
+
+volumes:
+  mongo_data: {}
+
+services:
+  boilerplate_nestjs:
+        container_name: boilerplate_nestjs
+        build: .
+        environment:
+         - PORT=3030
+        env_file:
+          - .env
+        networks:
+          - webnestjs
+        ports:
+         - ${PORT}:8080
+        depends_on:
+         - postgres_boilerplate_nestjs
+  postgres_boilerplate_nestjs:
+        container_name: boilerplate_nestjs_postgres
+        image: postgres:13.1-alpine
+        restart: always
+        environment:
+            - POSTGRES_USER=${DB_USER}
+            - POSTGRES_PASSWORD=${DB_PASS}
+            - POSTGRES_DB=${DB_NAME}
+        logging:
+            options:
+                max-size: 10m
+                max-file: "3"
+        ports:
+            - "${DB_PORT}:5432"
+        networks:
+            - webnestjs
+        volumes:
+            - ./Assets/docker/postgres_data:/var/lib/postgresql/data
+            # copy the sql script to create tables
+            #- ./sql/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
+networks:
+    webnestjs:

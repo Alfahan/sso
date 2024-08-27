@@ -3,12 +3,12 @@ import { BaseEntity } from './base.entity';
 
 @Entity('todos')
 export class Todo extends BaseEntity {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+	@PrimaryGeneratedColumn('uuid')
+	id: string;
 
-  @Column()
-  title: string;
+	@Column()
+	title: string;
 
-  @Column({ default: false })
-  completed: boolean;
+	@Column({ default: false })
+	completed: boolean;
 }

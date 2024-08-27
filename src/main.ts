@@ -3,14 +3,14 @@ import { AppModule } from './app.module';
 import { PORT } from './const';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: true });
+	const app = await NestFactory.create(AppModule, { cors: true });
 
-  app.enableCors();
+	app.enableCors();
 
-  // versioning
-  app.enableVersioning();
+	// versioning
+	app.enableVersioning();
 
-  await app.listen(PORT);
+	await app.listen(PORT);
 }
 
 bootstrap();

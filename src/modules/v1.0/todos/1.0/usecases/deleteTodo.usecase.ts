@@ -1,19 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { TodoRepository } from '../../repositories/todo.repository';
 import { Request, Response } from 'express';
+
 @Injectable()
-export class CreateTodoUseCase {
+export class DeleteTodoUseCase {
 	private readonly repository: TodoRepository;
 
 	constructor(repository: TodoRepository) {
 		this.repository = repository;
 	}
 
-	async create(req: Request, res: Response) {
+	async delete(req: Request, res: Response): Promise<void> {
+		const id = req.params.id;
 		const logged: any = res.locals.logged;
-		const body = req.body;
-		body.created_by = logged?.user_id ?? 'SYSTEM';
-		body.updated_by = logged?.name ?? 'SYSTEM';
-		return await this.repository.save(req.body);
+		const deletedBy: string = logged?.name ?? 'SYSTEM';
+		const deletedName: string = logged?.name ?? 'SYSTEM';
+		await this.repository.safeDeleteById(id, deletedBy, deletedName);
 	}
 }

@@ -1,19 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { TodoRepository } from '../../repositories/todo.repository';
 import { Request, Response } from 'express';
+
 @Injectable()
-export class CreateTodoUseCase {
+export class UpdateTodoUseCase {
 	private readonly repository: TodoRepository;
 
 	constructor(repository: TodoRepository) {
 		this.repository = repository;
 	}
 
-	async create(req: Request, res: Response) {
-		const logged: any = res.locals.logged;
+	async update(req: Request, res: Response) {
+		const id = req.params.id;
 		const body = req.body;
-		body.created_by = logged?.user_id ?? 'SYSTEM';
+
+		const logged: any = res.locals.logged;
+		const existingPermission = await this.repository.findById(id);
 		body.updated_by = logged?.name ?? 'SYSTEM';
-		return await this.repository.save(req.body);
+
+		const updatedPermission = { ...existingPermission, ...body };
+		return await this.repository.save(updatedPermission);
 	}
 }
