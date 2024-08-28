@@ -12,6 +12,7 @@ import { ReadAllTodoUseCase } from '@app/modules/v1.0/todos/1.0/usecases/readAll
 import { ReadTodoUseCase } from '@app/modules/v1.0/todos/1.0/usecases/readTodo.usecase';
 import { UpdateTodoUseCase } from '@app/modules/v1.0/todos/1.0/usecases/updateTodo.usecase';
 import { DeleteTodoUseCase } from '@app/modules/v1.0/todos/1.0/usecases/deleteTodo.usecase';
+import { Request, Response } from 'express';
 
 describe('TodoController', () => {
 	let controller: TodoController;
@@ -55,8 +56,8 @@ describe('TodoController', () => {
 
 	describe('create', () => {
 		it('should return a success response with the created data', async () => {
-			const req = {} as any;
-			const res = {} as any;
+			const req = {} as Request;
+			const res = {} as Response;
 			const data = {} as Todo;
 
 			jest.spyOn(createTodoUseCase, 'create').mockResolvedValue(data);
@@ -74,8 +75,8 @@ describe('TodoController', () => {
 		});
 
 		it('should return a fail response with the error message and stack trace', async () => {
-			const req = {} as any;
-			const res = {} as any;
+			const req = {} as Request;
+			const res = {} as Response;
 			const error = new Error('Test error');
 
 			jest.spyOn(createTodoUseCase, 'create').mockRejectedValue(error);
@@ -100,8 +101,8 @@ describe('TodoController', () => {
 	describe('read', () => {
 		it('should return a success response with the data returned by the service', async () => {
 			// Arrange
-			const req = {} as any;
-			const res = {} as any;
+			const req = {} as Request;
+			const res = {} as Response;
 			const data = {
 				id: '38bccfa2-fe0c-4ca8-a3e9-4342ae022b54',
 			} as Todo;
@@ -122,8 +123,8 @@ describe('TodoController', () => {
 
 		it('should return a fail response with the error message and stack trace', async () => {
 			// Arrange
-			const req = {} as any;
-			const res = {} as any;
+			const req = {} as Request;
+			const res = {} as Response;
 			const error = new Error('test-error');
 			jest.spyOn(readTodoUseCase, 'read').mockRejectedValue(error);
 			const failSpy = jest.spyOn(ApiResponse, 'fail');
@@ -144,8 +145,8 @@ describe('TodoController', () => {
 
 	describe('update', () => {
 		it('should be success updated data', async () => {
-			const req = {} as any;
-			const res = {} as any;
+			const req = {} as Request;
+			const res = {} as Response;
 			const data = {
 				id: '38bccfa2-fe0c-4ca8-a3e9-4342ae022b54',
 			} as Todo;
@@ -162,8 +163,8 @@ describe('TodoController', () => {
 
 		it('should return a failed response with the error message and stack trace', async () => {
 			// Arrange
-			const req = {} as any;
-			const res = {} as any;
+			const req = {} as Request;
+			const res = {} as Response;
 			const error = new Error('test-error');
 			jest.spyOn(updateTodoUseCase, 'update').mockRejectedValue(error);
 			const failSpy = jest.spyOn(ApiResponse, 'fail');
@@ -181,8 +182,8 @@ describe('TodoController', () => {
 
 		it('should throw an HttpException if the error is not an instance of Error', async () => {
 			// Arrange
-			const req = {} as any;
-			const res = {} as any;
+			const req = {} as Request;
+			const res = {} as Response;
 			const error = 'Http Exception';
 			jest.spyOn(updateTodoUseCase, 'update').mockRejectedValue(error);
 
@@ -198,26 +199,27 @@ describe('TodoController', () => {
 
 	describe('delete', () => {
 		it('should be success deleted data', async () => {
-			const req = {} as any;
-			const res = {} as any;
-			const data = {
-				id: 'd05f74e5-7677-410b-be15-a23c573fcfc3',
-			} as Todo;
+			const id = '38bccfa2-fe0c-4ca8-a3e9-4342ae022b54';
+			const req: Request = {
+				params: { id },
+			} as any;
+			const res = {} as Response;
 			jest.spyOn(deleteTodoUseCase, 'delete').mockResolvedValue();
 			const successSpy = jest.spyOn(ApiResponse, 'success');
 			const result = await controller.delete(res, req);
+
 			expect(successSpy).toHaveBeenCalledWith(
 				res,
-				data,
-				successCode.SCDTTD0004,
+				result,
+				successCode.SCDTTD0001,
 			);
 			expect(result).toEqual(successSpy.mock.results[0].value);
 		});
 
 		it('should return a failed response with the error message and stack trace', async () => {
 			// Arrange
-			const req = {} as any;
-			const res = {} as any;
+			const req = {} as Request;
+			const res = {} as Response;
 			const error = new Error('test-error');
 			jest.spyOn(deleteTodoUseCase, 'delete').mockRejectedValue(error);
 			const failSpy = jest.spyOn(ApiResponse, 'fail');
@@ -235,8 +237,8 @@ describe('TodoController', () => {
 
 		it('should be throw an HttpException if the error is not an instance of Error', async () => {
 			// Arrange
-			const req = {} as any;
-			const res = {} as any;
+			const req = {} as Request;
+			const res = {} as Response;
 			const error = 'Http Exception';
 			jest.spyOn(deleteTodoUseCase, 'delete').mockRejectedValue(error);
 
@@ -252,8 +254,8 @@ describe('TodoController', () => {
 
 	describe('readAll', () => {
 		it('should return a success response with the data returned by the service', async () => {
-			const req = {} as any;
-			const res = {} as any;
+			const req = {} as Request;
+			const res = {} as Response;
 			const data = [
 				{ id: 'd05f74e5-7677-410b-be15-a23c573fcfc3' },
 				{ id: 'd05f74e5-7677-410b-be15-a23c573fcfc4' },
@@ -273,8 +275,8 @@ describe('TodoController', () => {
 			expect(result).toEqual(successSpy.mock.results[0].value);
 		});
 		it('should be return a fail response', async () => {
-			const req = {} as any;
-			const res = {} as any;
+			const req = {} as Request;
+			const res = {} as Response;
 			const error = new Error('test-error');
 			jest.spyOn(readAllTodoUseCase, 'readAll').mockRejectedValue(error);
 			const failSpy = jest.spyOn(ApiResponse, 'fail');
@@ -290,8 +292,8 @@ describe('TodoController', () => {
 			expect(result).toEqual(failSpy.mock.results[0].value);
 		});
 		it('should throw an exception if the error is not an instance of Error', async () => {
-			const req = {} as any;
-			const res = {} as any;
+			const req = {} as Request;
+			const res = {} as Response;
 			const error = 'Http Exception';
 			jest.spyOn(readAllTodoUseCase, 'readAll').mockRejectedValue(error);
 
