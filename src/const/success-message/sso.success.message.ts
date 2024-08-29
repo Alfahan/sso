@@ -7,4 +7,10 @@ export const ssoSuccessMessageCode = {
 		fabdCode: 'SCCSCS0000',
 		message: 'Service Running.',
 	},
+	/*** Login success */
+	SCDTDT0001: {
+		httpCode: HttpStatus.CREATED,
+		fabdCode: 'SCCSCS0001',
+		message: 'Login success.',
+	},
 };
