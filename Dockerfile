@@ -12,7 +12,7 @@ RUN apk add --update --no-cache --virtual .build-dev \
 	make \
 	python3 \
 	g++ \
-	#&& npm i -g npm@10.0.0 \
+	&& npm i -g npm@10 \
 	&& npm i -g node-gyp \
 	&& npm i \
 	&& apk del .build-dev

@@ -36,7 +36,7 @@ PipelineDockerEntry([
 
     // Build Docker Image
     // Pada bagian ini anda dapat mengkonfigurasikan script untuk membuat image dari service yang anda buat
-    imageName: 'fabd-core-customer-sso-service', // "imageName" adalah nama dari service yang anda buat
+    imageName: 'fab-digital-core-api-customer-sso', // "imageName" adalah nama dari service yang anda buat
     buildAgent: 'Docker', // "buildAgent" dapat diubah sesuai dengan label agent pada https://jenkins.playcourt.id
     buildDockerImageScript: { String imageTag, String envStage ->
         // "buildDockerImageScript" berisi groovy script untuk melakukan build image
