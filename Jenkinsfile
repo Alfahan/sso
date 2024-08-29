@@ -1,57 +1,54 @@
 @Library(['shared-library', 'pipeline-library']) _
+def vault = new Vault()
 
-PipelineDockerEntry([
-    // Project Name
-    // Adalah nama dari project anda. Nama sudah ditentukan di awal, mohon tidak di ubah tanpa komunikasi dengan tim Playcourt
+// Cek panduan di wiki berikut: https://gitlab.playcourt.id/devops/devsecops-wiki
+PipelineDockerEntryV2([
+    // Nama project anda sesuai yang terdaftar di Playcourt. Nama sudah ditentukan di awal, mohon tidak di ubah tanpa komunikasi dengan tim Playcourt.
     projectName: 'fab-digital',
 
-    // Telegram Notification
-    // Pada bagian ini anda dapat mengubah "telegramChatId" dengan chat id anda. Chat id akan digunakan untuk mengirim notifikasi setiap pipeline selesai
-    telegramChatId: '-1001215679728',
+    // Nama dari service yang anda buat dan akan digunakan sebagai nama image docker.
+    imageName: 'fab-digital-core-api-customer-sso',
+
+    // Nama cluster di mana service akan dideploy. Deployment sudah ditentukan di awal, mohon tidak di ubah tanpa komunikasi dengan tim Playcourt.
+    deployment: 'jtn',
 
     // Prerun Script
     // Pada bagian ini anda dapat menambahkan dan mengkonfigurasikan script untuk dijalankan sebelum melakukan test atau build service yang anda buat
-    prerunAgent: 'Gitops', // "prerunAgent" dapat diubah sesuai dengan label agent pada https://jenkins.playcourt.id
-    prerunAgentImage: 'playcourt/jenkins:nodejs18', // "prerunAgentImage" wajib didefinisikan jika menggunakan agent Docker
+    prerunAgent: 'Gitops',
     prerunScript: {
         // "prerunScript" berisi groovy script yang akan dijalankan sebelum step test dan build
         // Pada bagian ini anda juga dapat membuat variable dan menggunakannya pada script yang lain
 
-        // contoh script untuk mengambil secret dari Vault:
-        // def vault = new Vault()
-        // APP_KEY = vault.vault('ins/itmtest/develop/example', 'APP_KEY')
+        // contoh script untuk mengambil secret dari Vault dan menyimpannya ke dalam file .env:
+        // useDotenv = vault.createDotenv("ins/instest/${env.BRANCH_NAME}/example")
     },
 
     // Service Test
     // Pada bagian ini anda dapat menambahkan dan mengkonfigurasikan script untuk menjalankan test pada service yang anda buat
-    testAgent: 'Docker', // "testAgent" dapat diubah sesuai dengan label agent pada https://jenkins.playcourt.id
-    testAgentImage: 'playcourt/jenkins:nodejs18', // "testAgentImage" wajib didefinisikan jika menggunakan agent Docker
+    testAgent: 'Docker',
+    testAgentImage: 'playcourt/jenkins:nodejs20', // Untuk option ini, hanya gunakan image dari https://hub.docker.com/r/playcourt/jenkins
     runTestScript: {
         // "runTestScript" berisi groovy script untuk menjalankan test
-
         // contoh script untuk menjalankan test pada service nodejs
-        sh "npm install"
-        sh "npm run test"
+        // sh "npm ci"
+        // sh "npm run test"
     },
 
     // Build Docker Image
     // Pada bagian ini anda dapat mengkonfigurasikan script untuk membuat image dari service yang anda buat
-    imageName: 'fab-digital-core-api-customer-sso', // "imageName" adalah nama dari service yang anda buat
-    buildAgent: 'Docker', // "buildAgent" dapat diubah sesuai dengan label agent pada https://jenkins.playcourt.id
-    buildDockerImageScript: { String imageTag, String envStage ->
+    buildAgent: 'Docker',
+    buildDockerImageScript: { String imageTag, String envStage, String buildCommand ->
         // "buildDockerImageScript" berisi groovy script untuk melakukan build image
+        // Wajib menggunakan variable buildCommand untuk menjalankan perintah docker build
         // Image yang dibuat wajib menggunakan tag dari variable imageTag
 
-        // contoh script untuk membuat image dan menggunakan variable yang dibuat pada prerunScript
-        // sh "docker build --build-arg ARGS_NODE_BUILD=${envStage} --build-arg APP_KEY=${APP_KEY} --rm --no-cache -t ${imageTag} ."
-    
-        sh "docker build --build-arg ARGS_NODE_BUILD=${envStage} --rm --no-cache -t ${imageTag} ."
-    },
+        // contoh script untuk menggunakan file .env yang dibuat pada prerunScript dan membuat image
+        // useDotenv {
+        //     sh "${buildCommand} -t ${imageTag} ."
+        // }
 
-    // Deployment
-    // Pada bagian ini anda dapat mengkonfigurasi dimana service akan dideploy
-    // Value dari variable ini sudah ditentukan di awal dan mohon tidak diubah tanpa komunikasi dengan tim Playcourt
-    deployment: 'jtn-general',
+        sh "${buildCommand} -t ${imageTag} ."
+    },
 
     // Post Run Script
     // Pada bagian ini anda dapat menambahkan script untuk dijalankan setelah proses pada pipeline selesai
