@@ -1,9 +1,31 @@
+/**
+ * Interface representing metadata information for paginated API responses.
+ */
 interface FABDMetaResponse {
-	per_page: number; // total data yg ditampilkan perpage (limit)
-	current_page: number; // posisi halaman berada
-	total_page: number; // total page
-	total_filtered: number; // total data saat sudah di filter
-	total: number; // total semua data (tanpa kena filter)
+	/**
+	 * The number of items displayed per page (limit).
+	 */
+	per_page: number;
+
+	/**
+	 * The current page number in the pagination.
+	 */
+	current_page: number;
+
+	/**
+	 * The total number of pages available.
+	 */
+	total_page: number;
+
+	/**
+	 * The total number of items after applying filters.
+	 */
+	total_filtered: number;
+
+	/**
+	 * The total number of items before applying any filters.
+	 */
+	total: number;
 }
 
 export default FABDMetaResponse;

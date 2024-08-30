@@ -29,6 +29,12 @@ export class TodoController {
 		private readonly deleteTodoUseCase: DeleteTodoUseCase,
 	) {}
 
+	/**
+	 * Create a new Todo item
+	 * @param res - Express Response object
+	 * @param req - Express Request object
+	 * @returns - Response with success or error message
+	 */
 	@Post()
 	async create(@Res() res: Response, @Req() req: Request): Promise<Response> {
 		try {
@@ -51,6 +57,12 @@ export class TodoController {
 		}
 	}
 
+	/**
+	 * Retrieve a specific Todo item by ID
+	 * @param res - Express Response object
+	 * @param req - Express Request object
+	 * @returns - Response with the requested Todo item or error message
+	 */
 	@Get('/:id')
 	async read(@Res() res: Response, @Req() req: Request): Promise<Response> {
 		try {
@@ -73,6 +85,12 @@ export class TodoController {
 		}
 	}
 
+	/**
+	 * Retrieve all Todo items with optional pagination and search
+	 * @param res - Express Response object
+	 * @param req - Express Request object
+	 * @returns - Response with a list of Todo items or error message
+	 */
 	@Get()
 	async readAll(
 		@Res() res: Response,
@@ -98,6 +116,12 @@ export class TodoController {
 		}
 	}
 
+	/**
+	 * Update a specific Todo item by ID
+	 * @param res - Express Response object
+	 * @param req - Express Request object
+	 * @returns - Response with updated Todo item or error message
+	 */
 	@Put('/:id')
 	async update(@Res() res: Response, @Req() req: Request): Promise<Response> {
 		try {
@@ -120,6 +144,12 @@ export class TodoController {
 		}
 	}
 
+	/**
+	 * Delete a specific Todo item by ID
+	 * @param res - Express Response object
+	 * @param req - Express Request object
+	 * @returns - Response with success message or error message
+	 */
 	@Delete('/:id')
 	async delete(@Res() res: Response, @Req() req: Request): Promise<Response> {
 		try {
