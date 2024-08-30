@@ -8,7 +8,7 @@ import { successCode } from './const/success-message';
 export class AppController {
 	constructor() {}
 
-	@Get()
+	@Get('v4/core-customer-sso-api/health-check')
 	index(@Res() response: Response): Response {
 		const message = `Service ${APP_NAME} is running.`;
 		return ApiResponse.success(response, message, successCode.SCDTDT0000);
