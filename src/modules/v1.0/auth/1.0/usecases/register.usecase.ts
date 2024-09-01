@@ -2,27 +2,47 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { AuthRepository } from '../../repositories/auth.repository'; // Importing the AuthRepository
 import * as bcrypt from 'bcrypt'; // Importing bcrypt for hashing the password
 import { Request } from 'express'; // Importing Request from express for type safety
+import { USER_ACTIVE } from '@app/const'; // Importing user status constant
 
+/**
+ * @service RegisterUseCase
+ * @description
+ * Handles the user registration process, including validation of email and phone number, password hashing, and saving the user to the database.
+ */
 @Injectable()
 export class RegisterUseCase {
 	// Injecting AuthRepository for interacting with the database
 	private readonly repository: AuthRepository;
 
-	// Constructor to initialize the repository
+	/**
+	 * @constructor
+	 * @param {AuthRepository} repository - The repository instance used for database interactions.
+	 */
 	constructor(repository: AuthRepository) {
 		this.repository = repository;
 	}
 
-	// Method to handle the registration process
+	/**
+	 * @method register
+	 * @description
+	 * Registers a new user by validating the provided email and phone number, hashing the password, and saving the user data to the database.
+	 *
+	 * @param {Request} req - The Express request object containing the registration details.
+	 * @returns {Promise<any>} - Returns the result of the registration process.
+	 * @throws {BadRequestException} - Throws an exception if the email or phone number is already in use.
+	 *
+	 * @example
+	 * const result = await registerUseCase.register({
+	 *   body: { email: 'test@example.com', no_phone: '1234567890', password: 'securePassword' },
+	 * });
+	 */
 	async register(req: Request) {
-		// Extracting email, no_phone, and password from the request body
 		const { email, no_phone, password } = req.body;
 
 		let find: any = null; // Variable to hold the result of database lookups
 
 		// Checking if the email is provided and if it already exists in the database
 		if (email !== undefined) {
-			// Call repository to find if the email is already in use
 			find = await this.repository.findByEmail('users', email);
 			if (find) {
 				// Throw an error if the email is already registered
@@ -32,7 +52,6 @@ export class RegisterUseCase {
 
 		// Checking if the phone number is provided and if it already exists in the database
 		if (no_phone !== undefined) {
-			// Call repository to find if the phone number is already in use
 			find = await this.repository.findByNoPhone('users', no_phone);
 			if (find) {
 				// Throw an error if the phone number is already registered
@@ -44,12 +63,11 @@ export class RegisterUseCase {
 		const hashedPassword = await bcrypt.hash(password, 10);
 
 		// Registering the new user in the database
-		// Status is set to 'active' by default for the new user
 		const result = await this.repository.register('users', {
 			email: email, // Email provided by the user
 			no_phone: no_phone, // Phone number provided by the user
 			password: hashedPassword, // Hashed password for security
-			status: 'active', // Status of the new user
+			status: USER_ACTIVE, // Status of the new user
 		});
 
 		// Returning the result of the registration process

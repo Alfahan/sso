@@ -6,7 +6,7 @@ import {
 	Index,
 } from 'typeorm';
 import { UserToken } from './userToken.entity';
-import { LoginLog } from './loginLog.entity';
+import { ActivityLog } from './activityLog.entity';
 import { BaseEntity } from './base.entity';
 
 /**
@@ -16,6 +16,7 @@ import { BaseEntity } from './base.entity';
 @Entity('users')
 @Index('idx-users-email', ['email']) // Index for user email
 @Index('idx-users-no_phone', ['no_phone']) // Index for user phone number
+@Index('idx-users-status', ['status']) // Index for user phone number
 @Index('idx-users-created_at', ['created_at']) // Index for creation timestamp
 @Index('idx-users-updated_at', ['updated_at']) // Index for update timestamp
 @Index('idx-users-deleted_at', ['deleted_at']) // Index for deletion timestamp
@@ -63,9 +64,9 @@ export class User extends BaseEntity {
 	tokens: UserToken[];
 
 	/**
-	 * One-to-many relationship with LoginLog.
+	 * One-to-many relationship with ActivityLog.
 	 * Represents all login logs associated with the user.
 	 */
-	@OneToMany(() => LoginLog, (loginLog) => loginLog.user_id)
-	loginLogs: LoginLog[];
+	@OneToMany(() => ActivityLog, (activityLog) => activityLog.user_id)
+	activityLog: ActivityLog[];
 }

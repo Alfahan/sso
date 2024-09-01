@@ -26,3 +26,16 @@ export const DB_NAME = process.env.DB_NAME;
 
 // Secret key used for encryption or signing tokens
 export const SECRET_KEY = process.env.SECRET_KEY;
+
+// User status
+export const USER_ACTIVE = 'ACTIVE';
+export const USER_INACTIVE = 'INACTIVE';
+export const USER_BLOCKED = 'BLOCKED';
+
+// Token status
+export const TOKEN_VALID = 'VALID';
+export const TOKEN_INVALID = 'INVALID';
+
+// ApiKey status
+export const API_KEY_VALID = 'VALID';
+export const API_KEY_INVALID = 'INVALID';

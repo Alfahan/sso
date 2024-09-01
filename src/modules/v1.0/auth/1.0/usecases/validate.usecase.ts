@@ -1,27 +1,39 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { AuthRepository } from '../../repositories/auth.repository';
-import { Request } from 'express';
+import { AuthRepository } from '../../repositories/auth.repository'; // Importing the AuthRepository
+import { Request } from 'express'; // Importing Request from express for type safety
 
+/**
+ * @service ValidateUseCase
+ * @description
+ * Handles the validation of email and phone number by checking their existence in the repository.
+ */
 @Injectable()
 export class ValidateUseCase {
 	private readonly repository: AuthRepository;
 
 	/**
-	 * Constructor for initializing ValidateUseCase with the given repository.
-	 * @param repository - The AuthRepository instance used for database operations.
+	 * @constructor
+	 * @param {AuthRepository} repository - The AuthRepository instance used for database operations.
 	 */
 	constructor(repository: AuthRepository) {
 		this.repository = repository;
 	}
 
 	/**
-	 * Validate if the provided email exists in the repository.
-	 * @param req - Express Request object containing the email in the request body.
-	 * @returns - Returns true if the email is found, otherwise false.
-	 * @throws - Throws BadRequestException if the email is not provided.
+	 * @method validateEmail
+	 * @description
+	 * Validates if the provided email exists in the repository.
+	 *
+	 * @param {Request} req - The Express request object containing the email in the request body.
+	 * @returns {Promise<boolean>} - Returns true if the email is found, otherwise false.
+	 * @throws {BadRequestException} - Throws an exception if the email is not provided or not found.
+	 *
+	 * @example
+	 * const result = await validateUseCase.validateEmail({
+	 *   body: { email: 'test@example.com' },
+	 * });
 	 */
 	async validateEmail(req: Request): Promise<boolean> {
-		// Extract email from the request body
 		const { email } = req.body;
 
 		// Check if email is provided
@@ -42,13 +54,20 @@ export class ValidateUseCase {
 	}
 
 	/**
-	 * Validate if the provided phone number exists in the repository.
-	 * @param req - Express Request object containing the phone number in the request body.
-	 * @returns - Returns true if the phone number is found, otherwise false.
-	 * @throws - Throws BadRequestException if the phone number is not provided.
+	 * @method validatePhone
+	 * @description
+	 * Validates if the provided phone number exists in the repository.
+	 *
+	 * @param {Request} req - The Express request object containing the phone number in the request body.
+	 * @returns {Promise<boolean>} - Returns true if the phone number is found, otherwise false.
+	 * @throws {BadRequestException} - Throws an exception if the phone number is not provided or not found.
+	 *
+	 * @example
+	 * const result = await validateUseCase.validatePhone({
+	 *   body: { no_phone: '1234567890' },
+	 * });
 	 */
 	async validatePhone(req: Request): Promise<boolean> {
-		// Extract phone number from the request body
 		const { no_phone } = req.body;
 
 		// Check if phone number is provided

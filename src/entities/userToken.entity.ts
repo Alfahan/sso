@@ -5,8 +5,8 @@ import {
 	Index,
 	ManyToOne,
 	JoinColumn,
+	CreateDateColumn,
 } from 'typeorm';
-import { BaseEntity } from './base.entity';
 import { User } from './user.entity';
 
 /**
@@ -15,7 +15,8 @@ import { User } from './user.entity';
  */
 @Entity('user_tokens')
 @Index('idx-user-tokens-user_id', ['user_id']) // Index for user ID to optimize queries related to tokens by user
-export class UserToken extends BaseEntity {
+@Index('idx-user-tokens-status', ['status']) // Index for user ID to optimize queries related to tokens by user
+export class UserToken {
 	/**
 	 * Unique identifier for the UserToken.
 	 * This is a UUID that is automatically generated.
@@ -45,4 +46,11 @@ export class UserToken extends BaseEntity {
 	 */
 	@Column()
 	status: string;
+
+	@Column({
+		type: 'timestamp without time zone',
+		default: () => 'CURRENT_TIMESTAMP',
+	})
+	@CreateDateColumn()
+	created_at?: Date;
 }

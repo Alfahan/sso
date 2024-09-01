@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { TodoModule } from './modules/v1.0/todos/1.0/todo.module';
 import { AuthModuleV10 } from './modules/v1.0/auth/1.0/auth.module';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ApiKeyModuleV10 } from './modules/v1.0/apiKey/1.0/apiKey.module';
 
 @Module({
 	imports: [
@@ -23,6 +24,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 		// Import Todo module for managing todo items
 		TodoModule,
 		// Import Auth module for handling authentication
+		ApiKeyModuleV10,
 		AuthModuleV10,
 	],
 	// Register the main application controller

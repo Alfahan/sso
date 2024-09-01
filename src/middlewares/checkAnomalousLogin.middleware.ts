@@ -36,8 +36,9 @@ export async function checkAnomalousLogin(
 
 	// Retrieve the last login location and device details from the database
 	const lastLogin = await authRepository.getLastLoginLocation(
-		'login_logs', // The table from which to fetch the last login details
-		user_id, // The user ID for whom to fetch the details
+		'activity_logs', // The table from which to fetch the last login details
+		user_id, // The user ID for whom to fetch the details,
+		'LOGIN',
 	);
 
 	// Check if the current login's country differs from the last login's country

@@ -29,4 +29,22 @@ export const ssoSuccessMessageCode = {
 		fabdCode: 'SCCSCS0003', // A unique code representing the success scenario.
 		message: 'Phone valid.', // Description of the success scenario.
 	},
+	/*** API key created successfully */
+	SCDTDT0004: {
+		httpCode: HttpStatus.CREATED,
+		fabdCode: 'SCCSCS0004',
+		message: 'API key created successfully.', // Description of API key creation success.
+	},
+	/*** API key rotated successfully */
+	SCDTDT0005: {
+		httpCode: HttpStatus.OK,
+		fabdCode: 'SCCSCS0005',
+		message: 'API key rotated successfully.', // Description of API key rotation success.
+	},
+	/*** API key revoked successfully */
+	SCDTDT0006: {
+		httpCode: HttpStatus.OK,
+		fabdCode: 'SCCSCS0006',
+		message: 'API key revoked successfully.', // Description of API key revocation success.
+	},
 };
