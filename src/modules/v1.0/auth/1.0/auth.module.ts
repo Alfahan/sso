@@ -10,6 +10,7 @@ import { RegisterUseCase } from './usecases/register.usecase'; // Importing the 
 import { ValidateUseCase } from './usecases/validate.usecase'; // Importing the ValidateUseCase for email and phone validation
 import { ApiKeyMiddleware } from '@app/middlewares/checkApiKey.middleware'; // Importing the middleware for API key validation
 import { ApiKeyRepository } from '../../apiKey/repository/apiKey.repository'; // Importing the ApiKeyRepository for managing API keys
+import { LogoutUseCase } from './usecases/logout.usecase';
 // import { RefreshTokenUseCase } from './usecases/refreshToken.usecase'; // Importing RefreshTokenUseCase if needed in the future
 
 // Defining the AuthModuleV10 module
@@ -19,7 +20,7 @@ import { ApiKeyRepository } from '../../apiKey/repository/apiKey.repository'; //
 		PassportModule, // Importing PassportModule for integrating authentication strategies
 		JwtModule.register({
 			secret: SECRET_KEY, // Configuring the secret key for signing JWT tokens
-			signOptions: { expiresIn: '60s' }, // Setting the token lifetime to 60 seconds
+			signOptions: { expiresIn: '5s' }, // Setting the token lifetime to 240 seconds
 		}),
 		TypeOrmModule.forFeature([]), // Importing TypeOrmModule to work with TypeORM entities
 	],
@@ -31,6 +32,7 @@ import { ApiKeyRepository } from '../../apiKey/repository/apiKey.repository'; //
 		RegisterUseCase, // Providing the use case for registration logic
 		AuthRepository, // Providing the repository for accessing authentication data
 		ApiKeyRepository, // Providing the repository for managing API keys
+		LogoutUseCase,
 	],
 	// Defining the controllers for the module
 	controllers: [AuthControllerV10], // Registering the controller to handle authentication routes

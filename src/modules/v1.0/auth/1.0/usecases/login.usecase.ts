@@ -9,112 +9,138 @@ import {
 	resetFailedAttempts,
 } from '@app/middlewares/checkRateLimit.middleware';
 import { checkAnomalousLogin } from '@app/middlewares/checkAnomalousLogin.middleware';
-import { TOKEN_VALID } from '@app/const';
+import { TOKEN_VALID, TOKEN_INVALID } from '@app/const'; // Constants for token status
 
 /**
- * @service LoginUseCase
- * @description
- * This service handles user login, including authentication and token generation.
+ * LoginUseCase class provides a service for handling user login.
+ * It checks for valid credentials, rate limits, and token handling (including generating new tokens if necessary).
  */
 @Injectable()
 export class LoginUseCase {
 	constructor(
-		private readonly repository: AuthRepository, // Injecting AuthRepository for interacting with the authentication data in the database
-		private readonly jwtService: JwtService, // Injecting JwtService for handling JWT token creation and verification
+		private readonly repository: AuthRepository, // Repository to handle authentication data in the database
+		private readonly jwtService: JwtService, // Service to handle JWT token creation and validation
 	) {}
 
 	/**
-	 * @method login
-	 * @description
-	 * Handles user login by validating credentials, generating a JWT token, and logging the login activity.
+	 * Handles the login process for users.
 	 *
-	 * @param {Request} req - The Express request object containing login details.
-	 * @returns {Promise<{ access_token: string }>} - Returns an object containing the generated JWT token if login is successful.
-	 * @throws {UnauthorizedException} - Throws an exception if the credentials are invalid or other errors occur.
-	 *
-	 * @example
-	 * const result = await loginUseCase.login({
-	 *   body: { no_phone: '1234567890', password: 'password123' },
-	 *   ip: '192.168.1.1',
-	 *   headers: { 'user-agent': 'Mozilla/5.0' },
-	 * });
+	 * @param req - The incoming request containing login data (email, phone number, and password).
+	 * @returns An object containing the JWT token if login is successful.
+	 * @throws UnauthorizedException - Throws if the credentials are invalid.
 	 */
 	async login(req: Request) {
 		const { no_phone, email, password } = req.body;
 		let user = null;
 
+		// Find the user by email or phone number
 		if (email) {
-			user = await this.repository.findByEmail('users', email); // Look up user by email
+			user = await this.repository.findByEmail('users', email); // Fetch user by email
 		} else if (no_phone) {
-			user = await this.repository.findByNoPhone('users', no_phone); // Look up user by phone number
+			user = await this.repository.findByNoPhone('users', no_phone); // Fetch user by phone number
 		}
 
+		// If user is not found, throw an UnauthorizedException
 		if (!user) {
 			throw new UnauthorizedException('Invalid credentials');
 		}
 
-		checkRateLimit(user.id); // Check if the user has exceeded the rate limit
+		// Check rate limiting for user login attempts
+		checkRateLimit(user.id);
 
+		// Validate the user's password
 		const isValidPassword = await this.isPasswordValid(
 			password,
 			user.password,
 		);
 		if (!isValidPassword) {
-			incrementFailedAttempts(user.id); // Increment failed attempts counter
+			incrementFailedAttempts(user.id); // Increment failed attempts counter if password is invalid
 			throw new UnauthorizedException('Invalid credentials');
 		}
 
-		await checkAnomalousLogin(req, user.id, this.repository); // Check for anomalous login behavior
+		// Check for suspicious login patterns or behavior
+		await checkAnomalousLogin(req, user.id, this.repository);
 
 		try {
-			const cekToken = await this.repository.cekValidateToken(
+			// Check if the user already has a valid token
+			const existingToken = await this.repository.cekValidateToken(
 				'user_tokens',
-				{ id: user.id, status: TOKEN_VALID },
+				{
+					user_id: user.id,
+					status: TOKEN_VALID,
+				},
 			);
 
-			if (cekToken) {
-				await this.repository.saveActivityLogs(
-					user.id,
-					req.ip,
-					'LOGIN',
-					req.headers['user-agent'],
-				); // Log successful login attempt
+			// If a valid token is found, check for expiration
+			if (existingToken) {
+				try {
+					// Verify the existing token. Throws an error if the token is expired.
+					this.jwtService.verify(existingToken, {
+						ignoreExpiration: false,
+					});
 
-				return { access_token: cekToken }; // Return existing valid token
+					// Log successful login
+					await this.repository.saveActivityLogs(
+						user.id,
+						req.ip,
+						'LOGIN',
+						req.headers['user-agent'],
+					);
+
+					// Return the valid token
+					return { access_token: existingToken };
+				} catch (e) {
+					// If token is expired, disable it and generate a new token
+					if (e.name === 'TokenExpiredError') {
+						await this.repository.updateTokenStatus(
+							'user_tokens',
+							existingToken,
+							TOKEN_INVALID,
+						);
+					} else {
+						throw e; // For other token-related errors, rethrow the exception
+					}
+				}
 			}
 
-			const payload = { sub: user.id };
-			const token = this.jwtService.sign(payload); // Generate a new JWT token
+			// Generate a new JWT token if no valid token exists or if the token has expired
+			const payload = { sub: user.id }; // The payload contains the user id (sub)
+			const newToken = this.jwtService.sign(payload); // Create a new JWT token
 
-			const tokenData = { user_id: user.id, token, status: TOKEN_VALID };
-			await this.repository.saveToken('user_tokens', tokenData); // Save the new token to the database
+			// Save the new token in the database
+			const tokenData = {
+				user_id: user.id,
+				token: newToken,
+				status: TOKEN_VALID,
+			};
+			await this.repository.saveToken('user_tokens', tokenData);
+
+			// Log successful login
 			await this.repository.saveActivityLogs(
 				user.id,
 				req.ip,
 				'LOGIN',
 				req.headers['user-agent'],
-			); // Log successful login attempt
+			);
 
-			resetFailedAttempts(user.id); // Reset failed attempts counter after successful login
+			// Reset the failed login attempts after successful login
+			resetFailedAttempts(user.id);
 
-			return { access_token: token }; // Return the newly generated JWT token
+			// Return the new token to the user
+			return { access_token: newToken };
 		} catch (error) {
-			incrementFailedAttempts(user.id); // Increment failed attempts counter if an error occurs
-			throw error; // Rethrow the error
+			// Increment failed login attempts counter on errors
+			incrementFailedAttempts(user.id);
+			throw error; // Rethrow the exception
 		}
 	}
 
 	/**
-	 * @method isPasswordValid
-	 * @description
-	 * Validates a plain password against a hashed password using bcrypt.
+	 * Validates the given plain password against the hashed password stored in the database.
 	 *
-	 * @param {string} plainPassword - The plain text password to be validated.
-	 * @param {string} hashedPassword - The hashed password to compare against.
-	 * @returns {Promise<boolean>} - Returns true if the password is valid, otherwise false.
-	 *
-	 * @example
-	 * const isValid = await loginUseCase.isPasswordValid('password123', 'hashedPassword');
+	 * @param plainPassword - The plain password provided by the user.
+	 * @param hashedPassword - The hashed password stored in the database.
+	 * @returns A boolean indicating whether the password is valid.
 	 */
 	private async isPasswordValid(
 		plainPassword: string,

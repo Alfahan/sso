@@ -13,6 +13,7 @@ import { successCode } from '@app/const/success-message'; // Importing predefine
 import { errorCode } from '@app/const/error-message'; // Importing predefined error message codes
 import { RegisterUseCase } from './usecases/register.usecase'; // Importing the RegisterUseCase for handling registration logic
 import { ValidateUseCase } from './usecases/validate.usecase'; // Importing the ValidateUseCase for email and phone validation
+import { LogoutUseCase } from './usecases/logout.usecase';
 // import { RefreshTokenUseCase } from './usecases/refreshToken.usecase';
 
 // Defining the controller for handling authentication-related routes
@@ -20,6 +21,7 @@ import { ValidateUseCase } from './usecases/validate.usecase'; // Importing the 
 export class AuthControllerV10 {
 	// Injecting the use cases via the constructor
 	constructor(
+		private readonly logoutUseCase: LogoutUseCase,
 		private readonly validateUseCase: ValidateUseCase, // Dependency injection for email and phone validation use case
 		private readonly loginUseCase: LoginUseCase, // Dependency injection for login use case
 		// private readonly refreshTokenUseCase: RefreshTokenUseCase,
@@ -131,6 +133,37 @@ export class AuthControllerV10 {
 					res,
 					error.message,
 					errorCode.ERDTTD0001,
+					error.stack,
+				);
+			}
+
+			// Throwing a generic internal server error if the error does not match the expected type
+			throw new HttpException(
+				error.message,
+				HttpStatus.INTERNAL_SERVER_ERROR,
+			);
+		}
+	}
+
+	@Post('/logout')
+	async logout(
+		@Res() res: Response, // Injecting the response object from Express
+		@Req() req: Request, // Injecting the request object from Express
+	): Promise<Response> {
+		try {
+			// Calling the logout method of LogoutUseCase with the request data
+			await this.logoutUseCase.logout(req);
+
+			// Returning a successful response using ApiResponse utility with a success code
+			return ApiResponse.success(res, null, successCode.SCDTDT0002);
+		} catch (error) {
+			// Handling any caught errors during logout
+			if (error instanceof Error) {
+				// Returning a failure response using ApiResponse utility with an error code and stack trace
+				return ApiResponse.fail(
+					res,
+					error.message,
+					errorCode.ERDTTD0002,
 					error.stack,
 				);
 			}

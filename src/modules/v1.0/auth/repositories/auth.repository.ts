@@ -30,6 +30,36 @@ export class AuthRepository {
 	}
 
 	/**
+	 * @method updateTokenStatus
+	 * @description Updates the status of a token in the `user_tokens` table.
+	 *
+	 * @param {string} tableName - The name of the table (e.g., 'user_tokens').
+	 * @param {string} token - The token that needs to be updated.
+	 * @param {string} newStatus - The new status to set for the token (e.g., TOKEN_INVALID).
+	 * @returns {Promise<void>} - Resolves when the token status has been updated.
+	 *
+	 * @example
+	 * await updateTokenStatus('user_tokens', 'someToken', 'INVALID');
+	 */
+	async updateTokenStatus(
+		tableName: string,
+		token: string,
+		newStatus: string,
+	): Promise<void> {
+		// Assuming your `user_tokens` table has a `token` column and `status` column.
+		const query = `UPDATE ${tableName} SET status = $1 WHERE token = $2`;
+		const values = [newStatus, token];
+
+		try {
+			// Execute the query to insert the token data into the database
+			await this.dataSource.query(query, values);
+		} catch (error) {
+			// Log any errors that occur during the database query
+			console.error('Error saving token:', error);
+		}
+	}
+
+	/**
 	 * Retrieves the latest token for a user from the specified table based on status.
 	 * @param {string} table - The name of the table to query.
 	 * @param {any} payload - The payload containing user ID and status.
@@ -40,7 +70,7 @@ export class AuthRepository {
 		payload: any,
 	): Promise<string | null> {
 		const query = `SELECT token FROM ${table} WHERE user_id=$1 AND status=$2 ORDER BY token DESC LIMIT 1`;
-		const values = [payload.id, payload.status];
+		const values = [payload.user_id, payload.status];
 
 		try {
 			// Execute the query to retrieve the latest token
