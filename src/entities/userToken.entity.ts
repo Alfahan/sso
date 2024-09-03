@@ -29,7 +29,7 @@ export class UserToken {
 	 * Represents the user associated with this token.
 	 * The foreign key column in the database is named 'user_id'.
 	 */
-	@ManyToOne(() => User, (user) => user.tokens)
+	@ManyToOne(() => User, (user) => user.user_tokens)
 	@JoinColumn({ name: 'user_id' }) // Customizes the foreign key column name
 	user_id: string; // Foreign key to the User entity, represented as a string
 

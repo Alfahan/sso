@@ -8,6 +8,7 @@ import {
 import { UserToken } from './userToken.entity';
 import { ActivityLog } from './activityLog.entity';
 import { BaseEntity } from './base.entity';
+import { UserResetPassword } from './userResetPassword.entity';
 
 /**
  * Entity representing a user in the system.
@@ -60,13 +61,19 @@ export class User extends BaseEntity {
 	 * One-to-many relationship with UserToken.
 	 * Represents all tokens associated with the user.
 	 */
-	@OneToMany(() => UserToken, (userToken) => userToken.user_id)
-	tokens: UserToken[];
+	@OneToMany(() => UserToken, (user_tokens) => user_tokens.user_id)
+	user_tokens: UserToken[];
 
 	/**
 	 * One-to-many relationship with ActivityLog.
 	 * Represents all login logs associated with the user.
 	 */
-	@OneToMany(() => ActivityLog, (activityLog) => activityLog.user_id)
-	activityLog: ActivityLog[];
+	@OneToMany(() => ActivityLog, (activity_logs) => activity_logs.user_id)
+	activity_logs: ActivityLog[];
+
+	@OneToMany(
+		() => UserResetPassword,
+		(user_reset_passwords) => user_reset_passwords.user_id,
+	)
+	user_reset_passwords: UserResetPassword[];
 }

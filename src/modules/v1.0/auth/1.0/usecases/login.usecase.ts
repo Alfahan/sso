@@ -8,12 +8,14 @@ import {
 	incrementFailedAttempts,
 	resetFailedAttempts,
 } from '@app/middlewares/checkRateLimit.middleware';
-import { checkAnomalousLogin } from '@app/middlewares/checkAnomalousLogin.middleware';
 import { TOKEN_VALID, TOKEN_INVALID } from '@app/const'; // Constants for token status
+import CryptoTs from 'pii-agent-ts';
+import { checkAnomalous } from '@app/middlewares/checkAnomalous.middleware';
 
 /**
- * LoginUseCase class provides a service for handling user login.
- * It checks for valid credentials, rate limits, and token handling (including generating new tokens if necessary).
+ * The `LoginUseCase` class provides a service for handling user authentication.
+ * It manages the login flow, including checking user credentials, applying rate limiting,
+ * handling token verification or generation, and logging activities.
  */
 @Injectable()
 export class LoginUseCase {
@@ -23,11 +25,19 @@ export class LoginUseCase {
 	) {}
 
 	/**
-	 * Handles the login process for users.
+	 * This method manages the login process for users by validating credentials and returning a JWT token.
+	 *
+	 * Steps:
+	 * 1. It checks whether the user exists by looking up the email or phone number in the database.
+	 * 2. If the user is found, it validates the provided password against the stored hashed password.
+	 * 3. It checks rate limiting and anomalous behavior.
+	 * 4. It handles the logic for existing valid JWT tokens (validity, expiration, regeneration).
+	 * 5. If no valid token exists, it generates a new JWT token and saves it to the database.
+	 * 6. It logs the login attempt (success or failure) and resets or increments login attempt counts.
 	 *
 	 * @param req - The incoming request containing login data (email, phone number, and password).
 	 * @returns An object containing the JWT token if login is successful.
-	 * @throws UnauthorizedException - Throws if the credentials are invalid.
+	 * @throws UnauthorizedException - Throws if the credentials are invalid or any suspicious behavior is detected.
 	 */
 	async login(req: Request) {
 		const { no_phone, email, password } = req.body;
@@ -48,6 +58,9 @@ export class LoginUseCase {
 		// Check rate limiting for user login attempts
 		checkRateLimit(user.id);
 
+		// Check for suspicious login patterns or behavior
+		await checkAnomalous(req, user.id, this.repository);
+
 		// Validate the user's password
 		const isValidPassword = await this.isPasswordValid(
 			password,
@@ -55,11 +68,15 @@ export class LoginUseCase {
 		);
 		if (!isValidPassword) {
 			incrementFailedAttempts(user.id); // Increment failed attempts counter if password is invalid
+			// Log login
+			await this.repository.saveActivityLogs(
+				user.id,
+				req.ip,
+				'LOGIN',
+				req.headers['user-agent'],
+			);
 			throw new UnauthorizedException('Invalid credentials');
 		}
-
-		// Check for suspicious login patterns or behavior
-		await checkAnomalousLogin(req, user.id, this.repository);
 
 		try {
 			// Check if the user already has a valid token
@@ -79,7 +96,7 @@ export class LoginUseCase {
 						ignoreExpiration: false,
 					});
 
-					// Log successful login
+					// Log login
 					await this.repository.saveActivityLogs(
 						user.id,
 						req.ip,
@@ -97,6 +114,13 @@ export class LoginUseCase {
 							existingToken,
 							TOKEN_INVALID,
 						);
+						// Log login
+						await this.repository.saveActivityLogs(
+							user.id,
+							req.ip,
+							'LOGIN',
+							req.headers['user-agent'],
+						);
 					} else {
 						throw e; // For other token-related errors, rethrow the exception
 					}
@@ -104,7 +128,8 @@ export class LoginUseCase {
 			}
 
 			// Generate a new JWT token if no valid token exists or if the token has expired
-			const payload = { sub: user.id }; // The payload contains the user id (sub)
+			const uniqueId = CryptoTs.encryptWithAes('AES_256_CBC', user.id);
+			const payload = { sub: uniqueId.Value.toString() }; // The payload contains the user id (sub)
 			const newToken = this.jwtService.sign(payload); // Create a new JWT token
 
 			// Save the new token in the database
@@ -115,7 +140,7 @@ export class LoginUseCase {
 			};
 			await this.repository.saveToken('user_tokens', tokenData);
 
-			// Log successful login
+			// Log login
 			await this.repository.saveActivityLogs(
 				user.id,
 				req.ip,
@@ -129,6 +154,13 @@ export class LoginUseCase {
 			// Return the new token to the user
 			return { access_token: newToken };
 		} catch (error) {
+			// Log login
+			await this.repository.saveActivityLogs(
+				user.id,
+				req.ip,
+				'LOGIN',
+				req.headers['user-agent'],
+			);
 			// Increment failed login attempts counter on errors
 			incrementFailedAttempts(user.id);
 			throw error; // Rethrow the exception

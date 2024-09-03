@@ -3,11 +3,14 @@ import { AuthRepository } from '../../repositories/auth.repository'; // Reposito
 import { Request } from 'express'; // Express request type for handling HTTP requests
 import { JwtService } from '@nestjs/jwt'; // Service for handling JWT token verification and invalidation
 import { TOKEN_INVALID } from '@app/const'; // Constant for marking tokens as invalid
+import CryptoTs from 'pii-agent-ts';
 
 /**
  * @service LogoutUseCase
  * @description
  * This service handles user logout, including invalidating the JWT token and logging the logout activity.
+ * It processes the logout request, verifies the provided JWT token, marks it as invalid in the database,
+ * and logs the logout activity such as IP address and user-agent information.
  */
 @Injectable()
 export class LogoutUseCase {
@@ -20,10 +23,11 @@ export class LogoutUseCase {
 	 * @method logout
 	 * @description
 	 * Handles user logout by invalidating the user's JWT token and logging the logout activity.
+	 * It ensures the token is valid and updates its status in the database to prevent further use.
 	 *
 	 * @param {Request} req - The Express request object containing logout details.
 	 * @returns {Promise<void>} - Returns a void promise indicating successful logout.
-	 * @throws {UnauthorizedException} - Throws an exception if the token is invalid or other errors occur.
+	 * @throws {UnauthorizedException} - Throws an exception if the token is invalid or missing.
 	 *
 	 * @example
 	 * await logoutUseCase.logout({
@@ -31,6 +35,13 @@ export class LogoutUseCase {
 	 *   ip: '192.168.1.1',
 	 *   headers: { 'user-agent': 'Mozilla/5.0' },
 	 * });
+	 *
+	 * @summary Steps:
+	 * - Extract the Bearer token from the authorization header.
+	 * - Verify the token using JWT service to extract the user ID (subject).
+	 * - Update the token status in the database to mark it as invalid.
+	 * - Log the logout activity, including the IP address and user-agent.
+	 * - If any errors occur, log the failure and rethrow the exception.
 	 */
 	async logout(req: Request): Promise<void> {
 		// Retrieve the Authorization header from the request
@@ -44,11 +55,13 @@ export class LogoutUseCase {
 		// Extract the JWT token from the Authorization header
 		const token = authHeader.split(' ')[1];
 
+		// Verify the JWT token to extract the payload (which contains the user ID)
+		const payload = this.jwtService.verify(token);
+		const userId = CryptoTs.decryptWithAes(
+			'AES_256_CBC',
+			Buffer.from(payload.sub),
+		); // Extract the user ID (subject) from the token payload
 		try {
-			// Verify the JWT token to extract the payload (which contains the user ID)
-			const payload = this.jwtService.verify(token);
-			const userId = payload.sub; // Extract the user ID (subject) from the token payload
-
 			// Invalidate the token by updating its status to TOKEN_INVALID in the database
 			await this.repository.updateTokenStatus(
 				'user_tokens',

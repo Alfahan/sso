@@ -1,10 +1,11 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ApiKeyControllerV10 } from './apiKey.controller';
 import { GenerateApiKeyUseCase } from './usecases/generate.usecase';
 import { ApiKeyRepository } from '../repository/apiKey.repository';
 import { RotateApiKeyUseCase } from './usecases/rotate.usecase';
 import { RevokeApiKeyUseCase } from './usecases/revoke.usecase';
+import { ApiKeyStaticMiddleware } from '@app/middlewares/checkApiKeyStatic.middleware';
 
 /**
  * @module ApiKeyModuleV10
@@ -29,4 +30,16 @@ import { RevokeApiKeyUseCase } from './usecases/revoke.usecase';
 	// Controller that handles incoming API requests related to API keys
 	controllers: [ApiKeyControllerV10],
 })
-export class ApiKeyModuleV10 {}
+export class ApiKeyModuleV10 {
+	/**
+	 * Configures the middleware for the module.
+	 * Applies the ApiKeyMiddleware to validate API keys for all routes under the 'v1.0/auth/*' path.
+	 *
+	 * @param {MiddlewareConsumer} consumer - The MiddlewareConsumer instance used for configuring middlewares.
+	 */
+	configure(consumer: MiddlewareConsumer) {
+		consumer
+			.apply(ApiKeyStaticMiddleware) // Applying the ApiKeyMiddleware to validate API keys
+			.forRoutes({ path: 'v1.0/api-key/*', method: RequestMethod.ALL }); // Applying the middleware to all routes under 'v1.0/auth/*'
+	}
+}

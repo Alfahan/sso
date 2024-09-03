@@ -29,7 +29,7 @@ export class ActivityLog {
 	 * Represents the user associated with this login log entry.
 	 * The foreign key column in the database is named 'user_id'.
 	 */
-	@ManyToOne(() => User, (user) => user.activityLog)
+	@ManyToOne(() => User, (user) => user.activity_logs)
 	@JoinColumn({ name: 'user_id' }) // Customizes the foreign key column name
 	user_id: User; // Relationship reference to the User entity
 

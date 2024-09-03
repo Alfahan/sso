@@ -11,6 +11,19 @@ import { ApiKeyModuleV10 } from './modules/v1.0/apiKey/1.0/apiKey.module';
 	imports: [
 		// Configure rate limiting for the application
 		ThrottlerModule.forRoot([
+			// // 3 requests per second
+			// {
+			// 	name: 'short',
+			// 	ttl: 1000,
+			// 	limit: 3,
+			// },
+			// // 20 requests per 10 seconds
+			// {
+			// 	name: 'medium',
+			// 	ttl: 10000,
+			// 	limit: 20,
+			// },
+			// 500 request per 60 seconds
 			{
 				name: 'long',
 				ttl: 60000, // Time-to-live for the rate limit in milliseconds

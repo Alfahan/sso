@@ -59,6 +59,19 @@ export class AuthRepository {
 		}
 	}
 
+	async resetPassword(table: string, payload: any): Promise<void> {
+		const query = `UPDATE ${table} SET password = $1 WHERE id = $2`;
+		const values = [payload.password, payload.id];
+
+		try {
+			// Execute the query to insert the token data into the database
+			await this.dataSource.query(query, values);
+		} catch (error) {
+			// Log any errors that occur during the database query
+			console.error('Error saving token:', error);
+		}
+	}
+
 	/**
 	 * Retrieves the latest token for a user from the specified table based on status.
 	 * @param {string} table - The name of the table to query.
@@ -119,6 +132,19 @@ export class AuthRepository {
 		} catch (error) {
 			// Log any errors that occur during the database query
 			console.error('Error finding user by email:', error);
+		}
+	}
+
+	async findById(table: string, id: string): Promise<any | null> {
+		const query = `SELECT id, password FROM ${table} WHERE id=$1 LIMIT 1`;
+		const value = [id];
+		try {
+			// Execute the query to retrieve the user by email
+			const result = await this.dataSource.query(query, value);
+			return result[0] || null; // Return the user data if found
+		} catch (error) {
+			// Log any errors that occur during the database query
+			console.error('Error finding user by id:', error);
 		}
 	}
 
@@ -194,14 +220,10 @@ export class AuthRepository {
 	 * @param {string} action - The action to filter by (e.g., 'Login').
 	 * @returns {Promise<any>} - A promise that resolves to the last login details if found.
 	 */
-	async getLastLoginLocation(
-		table: string,
-		user_id: string,
-		action: string,
-	): Promise<any> {
+	async getLastLoginLocation(table: string, user_id: string): Promise<any> {
 		// Query to select the last login details (country, IP, OS, browser, device) for the user
-		const query = `SELECT country, ip, os, browser, device FROM ${table} WHERE user_id=$1 AND action=$2 ORDER BY user_id DESC LIMIT 1`;
-		const values = [user_id, action];
+		const query = `SELECT country, ip, os, browser, device FROM ${table} WHERE user_id=$1 ORDER BY user_id DESC LIMIT 1`;
+		const values = [user_id];
 
 		try {
 			// Execute the query to retrieve the last login details from the database

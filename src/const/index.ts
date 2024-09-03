@@ -39,3 +39,6 @@ export const TOKEN_INVALID = 'INVALID';
 // ApiKey status
 export const API_KEY_VALID = 'VALID';
 export const API_KEY_INVALID = 'INVALID';
+
+// ApiKey Static
+export const API_KEY_STATIC = process.env.API_KEY_STATIC;

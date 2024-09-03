@@ -18,7 +18,7 @@ interface DeviceInfo {
  * @param authRepository - The instance of AuthRepository used for fetching login logs.
  * @throws UnauthorizedException if anomalous login behavior is detected.
  */
-export async function checkAnomalousLogin(
+export async function checkAnomalous(
 	req: Request,
 	user_id: string,
 	authRepository: AuthRepository,
@@ -38,7 +38,6 @@ export async function checkAnomalousLogin(
 	const lastLogin = await authRepository.getLastLoginLocation(
 		'activity_logs', // The table from which to fetch the last login details
 		user_id, // The user ID for whom to fetch the details,
-		'LOGIN',
 	);
 
 	// Check if the current login's country differs from the last login's country
