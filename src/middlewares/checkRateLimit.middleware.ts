@@ -30,7 +30,7 @@ export async function checkRateLimit(
 			timeSinceLastAttempt < 15 * 60
 		) {
 			throw new TooManyRequestsException(
-				'Too many login attempts. Try again later.',
+				'Too many request attempts. Try again later.',
 			); // Throw an exception for too many requests
 		} else if (timeSinceLastAttempt >= 15 * 60) {
 			// Reset the failed attempt counter if the 15-minute cooldown has passed

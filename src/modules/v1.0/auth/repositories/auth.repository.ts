@@ -12,9 +12,23 @@ export class AuthRepository {
 
 	/**
 	 * Saves a JWT token in the specified table with user ID and status.
+	 *
 	 * @param {string} table - The name of the table where the token will be saved.
 	 * @param {any} payload - The payload containing user_id, token, and status.
-	 * @returns {Promise<void>} - A promise that resolves when the token is saved.
+	 *   @property {string} user_id - The user ID associated with the token.
+	 *   @property {string} token - The JWT token to be saved.
+	 *   @property {string} status - The status of the token (e.g., valid, expired).
+	 * @returns {Promise<void>} - A promise that resolves when the token is successfully saved in the database.
+	 *
+	 * @throws Will log an error if the database query fails.
+	 *
+	 * @example
+	 * const payload = {
+	 *   user_id: '12345',
+	 *   token: 'jwt-token-value',
+	 *   status: 'valid'
+	 * };
+	 * await saveToken('user_tokens', payload);
 	 */
 	async saveToken(table: string, payload: any): Promise<void> {
 		const query = `INSERT INTO ${table} (user_id, token, status) VALUES ($1, $2, $3)`;
@@ -26,6 +40,43 @@ export class AuthRepository {
 		} catch (error) {
 			// Log any errors that occur during the database query
 			console.error('Error saving token:', error);
+		}
+	}
+
+	/**
+	 * Saves an OTP code in the specified table with user ID, OTP code, and expiry time.
+	 *
+	 * @param {string} table - The name of the table where the OTP will be saved.
+	 * @param {any} payload - The payload containing user_id, otp_code, and otp_expired_at.
+	 *   @property {string} user_id - The user ID associated with the OTP.
+	 *   @property {string} otp_code - The OTP code to be saved.
+	 *   @property {Date} otp_expired_at - The expiry time of the OTP code.
+	 * @returns {Promise<void>} - A promise that resolves when the OTP data is successfully saved in the database.
+	 *
+	 * @throws Will log an error if the database query fails.
+	 *
+	 * @example
+	 * const payload = {
+	 *   user_id: '12345',
+	 *   otp_code: '67890',
+	 *   otp_expired_at: new Date()
+	 * };
+	 * await saveOtp('user_otps', payload);
+	 */
+	async saveOtp(table: string, payload: any): Promise<void> {
+		const query = `INSERT INTO ${table} (user_id, otp_code, otp_expired_at) VALUES ($1, $2, $3)`;
+		const values = [
+			payload.user_id,
+			payload.otp_code,
+			payload.otp_expired_at,
+		];
+
+		try {
+			// Execute the query to insert the OTP data into the database
+			await this.dataSource.query(query, values);
+		} catch (error) {
+			// Log any errors that occur during the database query
+			console.error('Error saving OTP:', error);
 		}
 	}
 
@@ -59,16 +110,34 @@ export class AuthRepository {
 		}
 	}
 
+	/**
+	 * Resets the password for a user in the specified table based on user ID.
+	 *
+	 * @param {string} table - The name of the table where the password will be updated.
+	 * @param {any} payload - The payload containing the new password and user ID.
+	 *   @property {string} password - The new password to be set for the user.
+	 *   @property {string} id - The user ID for which the password needs to be updated.
+	 * @returns {Promise<void>} - A promise that resolves when the password is successfully updated in the database.
+	 *
+	 * @throws Will log an error if the database query fails.
+	 *
+	 * @example
+	 * const payload = {
+	 *   password: 'newPassword123',
+	 *   id: '12345'
+	 * };
+	 * await resetPassword('users', payload);
+	 */
 	async resetPassword(table: string, payload: any): Promise<void> {
 		const query = `UPDATE ${table} SET password = $1 WHERE id = $2`;
 		const values = [payload.password, payload.id];
 
 		try {
-			// Execute the query to insert the token data into the database
+			// Execute the query to update the password in the database
 			await this.dataSource.query(query, values);
 		} catch (error) {
 			// Log any errors that occur during the database query
-			console.error('Error saving token:', error);
+			console.error('Error updating password:', error);
 		}
 	}
 
@@ -115,6 +184,37 @@ export class AuthRepository {
 		} catch (error) {
 			// Log any errors that occur during the database query
 			console.error('Error finding user by phone number:', error);
+		}
+	}
+
+	/**
+	 * Retrieves a user by username from the specified table.
+	 *
+	 * @param {string} table - The name of the table from which to retrieve the user.
+	 * @param {string} username - The username of the user to be retrieved.
+	 * @returns {Promise<any | null>} - A promise that resolves to the user data if found, otherwise null.
+	 *
+	 * @throws Will log an error if the database query fails.
+	 *
+	 * @example
+	 * const user = await findByUsername('users', 'johndoe');
+	 * if (user) {
+	 *   console.log('User found:', user);
+	 * } else {
+	 *   console.log('User not found');
+	 * }
+	 */
+	async findByUsername(table: string, username: string): Promise<any | null> {
+		const query = `SELECT id, password FROM ${table} WHERE username=$1 LIMIT 1`;
+		const value = [username];
+
+		try {
+			// Execute the query to retrieve the user by username
+			const result = await this.dataSource.query(query, value);
+			return result[0] || null; // Return the user data if found
+		} catch (error) {
+			// Log any errors that occur during the database query
+			console.error('Error finding user by username:', error);
 		}
 	}
 
@@ -245,6 +345,19 @@ export class AuthRepository {
 		}
 	}
 
+	/**
+	 * Retrieves the number of failed login attempts and the last update timestamp for a specific user.
+	 *
+	 * @param {string} table - The name of the table from which to retrieve the data.
+	 * @param {string} user_id - The ID of the user whose failed login attempts are being retrieved.
+	 * @returns {Promise<any>} - A promise that resolves to the failed login attempts and last update timestamp if found, otherwise null.
+	 *
+	 * @throws Will log an error if the database query fails.
+	 *
+	 * @example
+	 * const failedAttempts = await findFailedLoginAttempts('users', 'user123');
+	 * console.log('Failed login attempts:', failedAttempts);
+	 */
 	async findFailedLoginAttempts(
 		table: string,
 		user_id: string,
@@ -253,15 +366,32 @@ export class AuthRepository {
 		const values = [user_id];
 
 		try {
-			// Execute the query to retrieve the last login details from the database
+			// Execute the query to retrieve the failed login attempts and update timestamp
 			const result = await this.dataSource.query(query, values);
-			return result[0] || null; // Return the last login details if found
+			return result[0] || null; // Return the data if found
 		} catch (error) {
 			// Log any errors that occur during the database query
-			console.error('Error retrieving last login location:', error);
+			console.error('Error retrieving failed login attempts:', error);
 		}
 	}
 
+	/**
+	 * Updates the number of failed login attempts, the update timestamp, and metadata for a specific user.
+	 *
+	 * @param {string} table - The name of the table where the data will be updated.
+	 * @param {any} payload - The data to be updated, including failed_login_attempts and updated_at.
+	 * @param {string} user_id - The ID of the user whose record is being updated.
+	 * @returns {Promise<any>} - A promise that resolves when the update is completed, returns null if no data is found.
+	 *
+	 * @throws Will log an error if the database query fails.
+	 *
+	 * @example
+	 * const result = await addFailedLoginAttempts('users', {
+	 *   failed_login_attempts: 3,
+	 *   updated_at: new Date(),
+	 * }, 'user123');
+	 * console.log('Update result:', result);
+	 */
 	async addFailedLoginAttempts(
 		table: string,
 		payload: any,
@@ -277,12 +407,39 @@ export class AuthRepository {
 		];
 
 		try {
-			// Execute the query to retrieve the last login details from the database
+			// Execute the query to update the failed login attempts and metadata
 			const result = await this.dataSource.query(query, values);
-			return result[0] || null; // Return the last login details if found
+			return result[0] || null; // Return the updated data if found
 		} catch (error) {
 			// Log any errors that occur during the database query
-			console.error('Error retrieving last login location:', error);
+			console.error('Error updating failed login attempts:', error);
+		}
+	}
+
+	/**
+	 * Retrieves the last OTP code and its expiration timestamp for a specific user.
+	 *
+	 * @param {string} table - The name of the table from which to retrieve the data.
+	 * @param {string} user_id - The ID of the user whose last OTP is being retrieved.
+	 * @returns {Promise<any>} - A promise that resolves to the last OTP code and expiration timestamp if found, otherwise null.
+	 *
+	 * @throws Will log an error if the database query fails.
+	 *
+	 * @example
+	 * const lastOtp = await findLastOtp('mfa_infos', 'user123');
+	 * console.log('Last OTP:', lastOtp);
+	 */
+	async findLastOtp(table: string, user_id: string): Promise<any> {
+		const query = `SELECT otp_code, otp_expired_at FROM ${table} WHERE user_id=$1 ORDER BY otp_expired_at DESC LIMIT 1`;
+		const values = [user_id];
+
+		try {
+			// Execute the query to retrieve the last OTP code and expiration timestamp
+			const result = await this.dataSource.query(query, values);
+			return result[0] || null; // Return the data if found
+		} catch (error) {
+			// Log any errors that occur during the database query
+			console.error('Error retrieving last OTP:', error);
 		}
 	}
 }

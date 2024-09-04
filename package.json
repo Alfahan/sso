@@ -37,6 +37,7 @@
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.5",
     "geoip-lite": "^1.4.10",
+    "notif-agent-ts": "^1.0.5",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.12.0",

@@ -16,6 +16,8 @@ import { ValidateUseCase } from './usecases/validate.usecase'; // Importing the 
 import { LogoutUseCase } from './usecases/logout.usecase'; // Importing the LogoutUseCase for handling logout logic
 import { ForgotPasswordUseCase } from './usecases/forgotPassword.usecase'; // Importing ForgotPasswordUseCase for handling password recovery
 import { ResetPasswordUseCase } from './usecases/resetPassword.usecase'; // Importing ResetPasswordUseCase for resetting the password
+import { OtpLoginPhoneUseCase } from './usecases/otpLoginPhone.usecase';
+import { LoginPhoneUseCase } from './usecases/loginPhone.usecase';
 // import { RefreshTokenUseCase } from './usecases/refreshToken.usecase'; // (Optional) Refresh Token Use Case can be added here in the future
 
 /**
@@ -27,10 +29,12 @@ export class AuthControllerV10 {
 	// Injecting various use cases through the constructor
 	constructor(
 		private readonly logoutUseCase: LogoutUseCase, // Handles user logout
+		private readonly otpLoginPhoneUseCase: OtpLoginPhoneUseCase,
 		private readonly forgotPasswordUseCase: ForgotPasswordUseCase, // Handles forgot password requests
 		private readonly resetPasswordUseCase: ResetPasswordUseCase, // Handles password reset requests
 		private readonly validateUseCase: ValidateUseCase, // Handles email and phone number validation
 		private readonly loginUseCase: LoginUseCase, // Handles user login
+		private readonly loginPhoneUseCase: LoginPhoneUseCase,
 		// private readonly refreshTokenUseCase: RefreshTokenUseCase, // (Optional) Refresh Token Use Case can be added
 		private readonly registerUseCase: RegisterUseCase, // Handles user registration
 	) {}
@@ -100,6 +104,38 @@ export class AuthControllerV10 {
 	}
 
 	/**
+	 * @route POST /auth/validate-username
+	 * @description Validates if the provided username exists in the system.
+	 * @param {Response} res - The Express response object used to send the response.
+	 * @param {Request} req - The Express request object containing the username in the request body.
+	 * @returns {Promise<Response>} - Returns a successful response if the username is valid, otherwise an error response.
+	 * @throws {HttpException} - Throws an exception if validation fails or an unexpected error occurs.
+	 */
+	@Post('/validate-username')
+	async validateUsername(
+		@Res() res: Response, // Injecting the Express response object
+		@Req() req: Request, // Injecting the Express request object
+	): Promise<Response> {
+		try {
+			const data = await this.validateUseCase.validateUsername(req); // Calling the validation logic for username
+			return ApiResponse.success(res, data, successCode.SCDTDT0012); // Returning success response
+		} catch (error) {
+			if (error instanceof Error) {
+				return ApiResponse.fail(
+					res,
+					error.message,
+					errorCode.ERDTTD0012,
+					error.stack,
+				); // Handling validation error
+			}
+			throw new HttpException(
+				error.message,
+				HttpStatus.INTERNAL_SERVER_ERROR,
+			); // Throwing internal server error
+		}
+	}
+
+	/**
 	 * @route POST /auth/login
 	 * @description Handles user login by verifying credentials and returning authentication tokens.
 	 * @param {Response} res - The Express response object used to send the response.
@@ -115,6 +151,70 @@ export class AuthControllerV10 {
 		try {
 			const data = await this.loginUseCase.login(req); // Calling login logic
 			return ApiResponse.success(res, data, successCode.SCDTDT0001); // Returning success response
+		} catch (error) {
+			if (error instanceof Error) {
+				return ApiResponse.fail(
+					res,
+					error.message,
+					errorCode.ERDTTD0001,
+					error.stack,
+				); // Handling login error
+			}
+			throw new HttpException(
+				error.message,
+				HttpStatus.INTERNAL_SERVER_ERROR,
+			); // Throwing internal server error
+		}
+	}
+
+	/**
+	 * @route POST /auth/otp-login-phone
+	 * @description Initiates the login process using OTP (One-Time Password) via phone.
+	 * @param {Response} res - The Express response object used to send the response.
+	 * @param {Request} req - The Express request object containing the phone number in the request body.
+	 * @returns {Promise<Response>} - Returns a successful response with OTP data if the request is successful, otherwise an error response.
+	 * @throws {HttpException} - Throws an exception if OTP generation fails or an unexpected error occurs.
+	 */
+	@Post('/otp-login-phone')
+	async otpLoginPhone(
+		@Res() res: Response, // Injecting the Express response object
+		@Req() req: Request, // Injecting the Express request object
+	): Promise<Response> {
+		try {
+			const data = await this.otpLoginPhoneUseCase.requestOtp(req); // Calling OTP request logic
+			return ApiResponse.success(res, data, successCode.SCDTDT0010); // Returning success response
+		} catch (error) {
+			if (error instanceof Error) {
+				return ApiResponse.fail(
+					res,
+					error.message,
+					errorCode.ERDTTD0011,
+					error.stack,
+				); // Handling OTP login error
+			}
+			throw new HttpException(
+				error.message,
+				HttpStatus.INTERNAL_SERVER_ERROR,
+			); // Throwing internal server error
+		}
+	}
+
+	/**
+	 * @route POST /auth/login-phone
+	 * @description Handles the login process using a phone number.
+	 * @param {Response} res - The Express response object used to send the response.
+	 * @param {Request} req - The Express request object containing the phone number and credentials in the request body.
+	 * @returns {Promise<Response>} - Returns a successful response if the login is successful, otherwise an error response.
+	 * @throws {HttpException} - Throws an exception if the login fails or an unexpected error occurs.
+	 */
+	@Post('/login-phone')
+	async loginPhone(
+		@Res() res: Response, // Injecting the Express response object
+		@Req() req: Request, // Injecting the Express request object
+	): Promise<Response> {
+		try {
+			const data = await this.loginPhoneUseCase.login(req); // Calling login logic
+			return ApiResponse.success(res, data, successCode.SCDTDT0011); // Returning success response
 		} catch (error) {
 			if (error instanceof Error) {
 				return ApiResponse.fail(

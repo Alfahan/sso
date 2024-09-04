@@ -64,4 +64,16 @@ export const ssoErrorMessageCode = {
 		fabdCode: 'ERDTTD0010',
 		message: 'Forgot Password failed.', // Error message for cases where the logout failed.
 	},
+	/*** Otp Login failed */
+	ERDTTD0011: {
+		httpCode: HttpStatus.INTERNAL_SERVER_ERROR,
+		fabdCode: 'ERDTTD0011',
+		message: 'Otp Login failed.', // Error message for cases where the logout failed.
+	},
+	/*** Username not found */
+	ERDTTD0012: {
+		httpCode: HttpStatus.NOT_FOUND,
+		fabdCode: 'ERDTTD0012',
+		message: 'Username not found.', // Error message for cases where the Phone cannot be found.
+	},
 };

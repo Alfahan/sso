@@ -65,4 +65,22 @@ export const ssoSuccessMessageCode = {
 		fabdCode: 'SCDTDT0009', // A unique code representing the success scenario.
 		message: 'Forgot Password success.', // Description of the success scenario.
 	},
+	/*** Otp Login success */
+	SCDTDT0010: {
+		httpCode: HttpStatus.CREATED, // HTTP status code indicating that the request has been fulfilled and has resulted in the creation of a resource.
+		fabdCode: 'SCDTDT0010', // A unique code representing the success scenario.
+		message: 'Otp Login success.', // Description of the success scenario.
+	},
+	/*** Login Phone success */
+	SCDTDT0011: {
+		httpCode: HttpStatus.CREATED, // HTTP status code indicating that the request has been fulfilled and has resulted in the creation of a resource.
+		fabdCode: 'SCDTDT0011', // A unique code representing the success scenario.
+		message: 'Login Phone success.', // Description of the success scenario.
+	},
+	/*** Username valid */
+	SCDTDT0012: {
+		httpCode: HttpStatus.CREATED, // HTTP status code indicating that the request has been fulfilled and has resulted in the creation of a resource.
+		fabdCode: 'SCDTDT0012', // A unique code representing the success scenario.
+		message: 'Username valid.', // Description of the success scenario.
+	},
 };

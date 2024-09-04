@@ -1,54 +1,44 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { AuthRepository } from '../../repositories/auth.repository'; // Repository for database access related to authentication
-import { JwtService } from '@nestjs/jwt'; // Service for handling JWT token creation and verification
-import { Request } from 'express'; // Express request type for handling HTTP requests
-import * as bcrypt from 'bcrypt'; // bcrypt library for hashing and comparing passwords
+import { AuthRepository } from '../../repositories/auth.repository';
+import { Request } from 'express';
 import {
 	checkRateLimit,
 	incrementFailedAttempts,
 	resetFailedAttempts,
 } from '@app/middlewares/checkRateLimit.middleware';
-import { TOKEN_VALID, TOKEN_INVALID } from '@app/const'; // Constants for token status
 import CryptoTs from 'pii-agent-ts';
-// import { checkAnomalous } from '@app/middlewares/checkAnomalous.middleware';
+import { TOKEN_INVALID, TOKEN_VALID } from '@app/const';
+import { JwtService } from '@nestjs/jwt';
 
-/**
- * The `LoginUseCase` class provides a service for handling user authentication.
- * It manages the login flow, including checking user credentials, applying rate limiting,
- * handling token verification or generation, and logging activities.
- */
 @Injectable()
-export class LoginUseCase {
+export class LoginPhoneUseCase {
 	constructor(
-		private readonly repository: AuthRepository, // Repository to handle authentication data in the database
+		private readonly repository: AuthRepository,
 		private readonly jwtService: JwtService, // Service to handle JWT token creation and validation
 	) {}
 
 	/**
-	 * This method manages the login process for users by validating credentials and returning a JWT token.
+	 * Handles the phone login process using OTP and JWT token.
+	 * Validates the OTP, checks for rate limiting, and manages token issuance and authentication history.
 	 *
-	 * Steps:
-	 * 1. It checks whether the user exists by looking up the email or phone number in the database.
-	 * 2. If the user is found, it validates the provided password against the stored hashed password.
-	 * 3. It checks rate limiting and anomalous behavior.
-	 * 4. It handles the logic for existing valid JWT tokens (validity, expiration, regeneration).
-	 * 5. If no valid token exists, it generates a new JWT token and saves it to the database.
-	 * 6. It logs the login attempt (success or failure) and resets or increments login attempt counts.
-	 *
-	 * @param req - The incoming request containing login data (email, phone number, and password).
-	 * @returns An object containing the JWT token if login is successful.
-	 * @throws UnauthorizedException - Throws if the credentials are invalid or any suspicious behavior is detected.
+	 * @param {Request} req - The Express request object containing the phone number and OTP in the request body.
+	 * @returns {Promise<{ access_token: string; refresh_token: string | null }>} - Returns a valid JWT access token if login is successful.
+	 * @throws {UnauthorizedException} - Throws if the user credentials or OTP are invalid.
+	 * @throws {Error} - Throws if OTP is expired or any other error occurs during the login process.
 	 */
-	async login(req: Request) {
-		const { email, password } = req.body;
+	async login(
+		req: Request,
+	): Promise<{ access_token: string; refresh_token: string | null }> {
+		const { phone_number, otp_code } = req.body;
 		let user = null;
 
-		// Find the user by email or phone number
-		if (email) {
-			user = await this.repository.findByEmail('users', email); // Fetch user by email
+		if (phone_number) {
+			user = await this.repository.findByPhoneNumber(
+				'users',
+				phone_number,
+			);
 		}
 
-		// If user is not found, throw an UnauthorizedException
 		if (!user) {
 			throw new UnauthorizedException('Invalid credentials');
 		}
@@ -56,17 +46,28 @@ export class LoginUseCase {
 		// Check rate limiting for user login attempts
 		await checkRateLimit(user.id, this.repository);
 
-		// Check for suspicious login patterns or behavior
-		// await checkAnomalous(req, user.id, this.repository);
+		const lastOtp = await this.repository.findLastOtp('mfa_infos', user.id);
 
-		// Validate the user's password
-		const isValidPassword = await this.isPasswordValid(
-			password,
-			user.password,
+		const decryptOtp = CryptoTs.decryptWithAes(
+			'AES_256_CBC',
+			Buffer.from(lastOtp.otp_code),
 		);
-		if (!isValidPassword) {
-			await incrementFailedAttempts(user.id, this.repository); // Increment failed attempts counter if password is invalid
-			// Log login
+
+		const currentTime = new Date();
+
+		if (lastOtp && lastOtp.otp_expired_at < currentTime) {
+			await incrementFailedAttempts(user.id, this.repository); // Increment failed attempts counter if OTP is invalid
+			await this.repository.saveAuthHistory(
+				user.id,
+				req.ip,
+				'LOGIN',
+				req.headers['user-agent'],
+			);
+			throw new Error(`OTP Expired.`);
+		}
+
+		if (otp_code !== decryptOtp) {
+			await incrementFailedAttempts(user.id, this.repository); // Increment failed attempts counter if OTP is invalid
 			await this.repository.saveAuthHistory(
 				user.id,
 				req.ip,
@@ -169,19 +170,5 @@ export class LoginUseCase {
 			await incrementFailedAttempts(user.id, this.repository);
 			throw error; // Rethrow the exception
 		}
-	}
-
-	/**
-	 * Validates the given plain password against the hashed password stored in the database.
-	 *
-	 * @param plainPassword - The plain password provided by the user.
-	 * @param hashedPassword - The hashed password stored in the database.
-	 * @returns A boolean indicating whether the password is valid.
-	 */
-	private async isPasswordValid(
-		plainPassword: string,
-		hashedPassword: string,
-	): Promise<boolean> {
-		return bcrypt.compare(plainPassword, hashedPassword);
 	}
 }
