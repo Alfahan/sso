@@ -106,7 +106,6 @@ export class ForgotPasswordUseCase {
 				}
 			}
 
-
 			// If no valid token exists or if the token has expired, generate a new JWT token
 			const uniqueId = CryptoTs.encryptWithAes('AES_256_CBC', user.id);
 			const payload = { sub: uniqueId.Value.toString() }; // Payload contains the user id (sub)
