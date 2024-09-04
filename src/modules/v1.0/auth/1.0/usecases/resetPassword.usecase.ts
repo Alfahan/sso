@@ -76,7 +76,7 @@ export class ResetPasswordUseCase {
 				);
 
 				// Log successful
-				await this.repository.saveActivityLogs(
+				await this.repository.saveAuthHistory(
 					user_id,
 					req.ip,
 					'RESET_PASSWORD',

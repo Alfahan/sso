@@ -13,10 +13,10 @@ import { User } from './user.entity';
  * Entity representing a login log entry.
  * Inherits common fields from the BaseEntity class.
  */
-@Entity('activity_logs')
-@Index('idx-login-logs-user_id', ['user_id']) // Index for user ID to optimize queries related to users
-@Index('idx-login-logs-action', ['action']) // Index for action type to optimize queries based on login actions
-export class ActivityLog {
+@Entity('auth_histories')
+@Index('idx-auth-histories-user_id', ['user_id']) // Index for user ID to optimize queries related to users
+@Index('idx-auth-histories-action_type', ['action_type']) // Index for action type to optimize queries based on login actions
+export class AuthHistory {
 	/**
 	 * Unique identifier for the LoginLog.
 	 * This is a UUID that is automatically generated.
@@ -29,7 +29,7 @@ export class ActivityLog {
 	 * Represents the user associated with this login log entry.
 	 * The foreign key column in the database is named 'user_id'.
 	 */
-	@ManyToOne(() => User, (user) => user.activity_logs)
+	@ManyToOne(() => User, (user) => user.auth_histories)
 	@JoinColumn({ name: 'user_id' }) // Customizes the foreign key column name
 	user_id: User; // Relationship reference to the User entity
 
@@ -38,14 +38,17 @@ export class ActivityLog {
 	 * This field is optional.
 	 */
 	@Column({ nullable: true })
-	ip: string;
+	ip_origin: string;
+
+	@Column({ nullable: true })
+	geolocation: string;
 
 	/**
-	 * Operating System used during the login attempt.
+	 * Country from which the login attempt was made.
 	 * This field is optional.
 	 */
 	@Column({ nullable: true })
-	os: string;
+	country: string;
 
 	/**
 	 * Browser used during the login attempt.
@@ -55,11 +58,11 @@ export class ActivityLog {
 	browser: string;
 
 	/**
-	 * Country from which the login attempt was made.
+	 * Operating System used during the login attempt.
 	 * This field is optional.
 	 */
 	@Column({ nullable: true })
-	country: string;
+	os_type: string;
 
 	/**
 	 * Device used during the login attempt.
@@ -73,12 +76,12 @@ export class ActivityLog {
 	 * This could be 'login', 'logout', etc.
 	 */
 	@Column()
-	action: string;
+	action_type: string;
 
 	@Column({
 		type: 'timestamp without time zone',
 		default: () => 'CURRENT_TIMESTAMP',
 	})
 	@CreateDateColumn()
-	created_at?: Date;
+	action_at?: Date;
 }

@@ -64,19 +64,22 @@ export class ValidateUseCase {
 	 *
 	 * @example
 	 * const result = await validateUseCase.validatePhone({
-	 *   body: { no_phone: '1234567890' },
+	 *   body: { phone_number: '1234567890' },
 	 * });
 	 */
 	async validatePhone(req: Request): Promise<boolean> {
-		const { no_phone } = req.body;
+		const { phone_number } = req.body;
 
 		// Check if phone number is provided
-		if (no_phone === undefined) {
+		if (phone_number === undefined) {
 			throw new BadRequestException('Phone is required');
 		}
 
 		// Find the phone number in the repository
-		const find = await this.repository.findByNoPhone('users', no_phone);
+		const find = await this.repository.findByPhoneNumber(
+			'users',
+			phone_number,
+		);
 
 		// Check if the phone number exists in the repository
 		if (find == undefined) {

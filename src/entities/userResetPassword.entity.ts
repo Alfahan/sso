@@ -10,8 +10,8 @@ import {
 import { User } from './user.entity';
 
 @Entity('user_reset_passwords')
-@Index('idx-user-token-user_id', ['user_id'])
-@Index('idx-user-token-status', ['status'])
+@Index('idx-user-reset-passwords-user_id', ['user_id'])
+@Index('idx-user-reset-passwords-status', ['status'])
 export class UserResetPassword {
 	@PrimaryGeneratedColumn('uuid')
 	id: string;

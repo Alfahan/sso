@@ -98,12 +98,15 @@ export class AuthRepository {
 	/**
 	 * Finds a user by phone number in the specified table.
 	 * @param {string} table - The name of the table to query.
-	 * @param {string} no_phone - The phone number of the user.
+	 * @param {string} phone_number - The phone number of the user.
 	 * @returns {Promise<string | null>} - A promise that resolves to the user data if found, or null if not found.
 	 */
-	async findByNoPhone(table: string, no_phone: string): Promise<any | null> {
-		const query = `SELECT id, password FROM ${table} WHERE no_phone=$1 LIMIT 1`;
-		const value = [no_phone];
+	async findByPhoneNumber(
+		table: string,
+		phone_number: string,
+	): Promise<any | null> {
+		const query = `SELECT id, password FROM ${table} WHERE phone_number=$1 LIMIT 1`;
+		const value = [phone_number];
 
 		try {
 			// Execute the query to retrieve the user by phone number
@@ -156,7 +159,7 @@ export class AuthRepository {
 	 * @param {string} userAgentString - The user agent string from the request.
 	 * @returns {Promise<void>} - A promise that resolves when the activity log is saved.
 	 */
-	async saveActivityLogs(
+	async saveAuthHistory(
 		user_id: string,
 		ip: string,
 		action: string,
@@ -167,24 +170,30 @@ export class AuthRepository {
 		// Lookup the geolocation information from the IP address
 		const geo = geoip.lookup(ip);
 
-		// Query to insert the login log into the activity_logs table
-		const query = `INSERT INTO activity_logs (user_id, ip, os, browser, country, device, action) VALUES ($1, $2, $3, $4, $5, $6, $7)`;
+		// Values for the SQL query
 		const values = [
 			user_id,
 			ip,
-			agent.os.toString(), // Extracted OS information
+			geo ? `${geo.city}, ${geo.region}, ${geo.country}` : 'Unknown', // Geolocation information or 'Unknown'
+			geo?.country || 'Unknown', // Extracted country information or 'Unknown'
 			agent.toAgent(), // Extracted browser information
-			geo?.country || 'Unknown', // Extracted country information or 'Unknown' if not found
+			agent.os.toString(), // Extracted OS information
 			agent.device.toString(), // Extracted device information
-			action, // Login action (e.g., 'Login')
+			action, // Action performed (e.g., 'login', 'logout')
 		];
 
+		// SQL query to insert the authentication history into the auth_histories table
+		const query = `
+			INSERT INTO auth_histories (user_id, ip_origin, geolocation, country, browser, os_type, device, action_type)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		`;
+
 		try {
-			// Execute the query to insert the login log data into the database
+			// Execute the query to insert the authentication history into the database
 			await this.dataSource.query(query, values);
 		} catch (error) {
 			// Log any errors that occur during the database query
-			console.error('Error saving activity log:', error);
+			console.error('Error saving authentication history:', error);
 		}
 	}
 
@@ -196,11 +205,12 @@ export class AuthRepository {
 	 */
 	async register(table: string, payload: any): Promise<void> {
 		// Query to insert the new user data (email, password, phone number, status) into the table
-		const query = `INSERT INTO ${table} (email, password, no_phone, status) VALUES ($1, $2, $3, $4)`;
+		const query = `INSERT INTO ${table} (username, email, password, phone_number, status) VALUES ($1, $2, $3, $4, $5)`;
 		const values = [
+			payload.username,
 			payload.email,
 			payload.password,
-			payload.no_phone,
+			payload.phone_number,
 			payload.status,
 		];
 
@@ -222,8 +232,49 @@ export class AuthRepository {
 	 */
 	async getLastLoginLocation(table: string, user_id: string): Promise<any> {
 		// Query to select the last login details (country, IP, OS, browser, device) for the user
-		const query = `SELECT country, ip, os, browser, device FROM ${table} WHERE user_id=$1 ORDER BY user_id DESC LIMIT 1`;
+		const query = `SELECT ip_origin, geolocation, os_type, country, browser, os_type, device FROM ${table} WHERE user_id=$1 ORDER BY user_id DESC LIMIT 1`;
 		const values = [user_id];
+
+		try {
+			// Execute the query to retrieve the last login details from the database
+			const result = await this.dataSource.query(query, values);
+			return result[0] || null; // Return the last login details if found
+		} catch (error) {
+			// Log any errors that occur during the database query
+			console.error('Error retrieving last login location:', error);
+		}
+	}
+
+	async findFailedLoginAttempts(
+		table: string,
+		user_id: string,
+	): Promise<any> {
+		const query = `SELECT failed_login_attempts, updated_at FROM ${table} WHERE id=$1 LIMIT 1`;
+		const values = [user_id];
+
+		try {
+			// Execute the query to retrieve the last login details from the database
+			const result = await this.dataSource.query(query, values);
+			return result[0] || null; // Return the last login details if found
+		} catch (error) {
+			// Log any errors that occur during the database query
+			console.error('Error retrieving last login location:', error);
+		}
+	}
+
+	async addFailedLoginAttempts(
+		table: string,
+		payload: any,
+		user_id: string,
+	): Promise<any> {
+		const query = `UPDATE ${table} SET failed_login_attempts = $1, updated_at = $2, updated_by = $3, updated_name = $4 WHERE id = $5`;
+		const values = [
+			payload.failed_login_attempts,
+			payload.updated_at,
+			'1', // System ID or user responsible for the update
+			'SYSTEM', // System user
+			user_id, // User ID whose record is being updated
+		];
 
 		try {
 			// Execute the query to retrieve the last login details from the database

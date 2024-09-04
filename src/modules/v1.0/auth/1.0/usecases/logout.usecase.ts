@@ -70,7 +70,7 @@ export class LogoutUseCase {
 			);
 
 			// Log the logout activity with the user's IP and user-agent details
-			await this.repository.saveActivityLogs(
+			await this.repository.saveAuthHistory(
 				userId,
 				req.ip,
 				'LOGOUT',

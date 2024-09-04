@@ -36,6 +36,27 @@ export const USER_BLOCKED = 'BLOCKED';
 export const TOKEN_VALID = 'VALID';
 export const TOKEN_INVALID = 'INVALID';
 
+// Segment
+export const SEGMENT_LEADS = 'LEADS';
+export const SEGMENT_CUSTOMER = 'CUSTOMER';
+export const SEGMENT_PARTNER = 'PARTNER';
+export const SEGMENT_INTERNAL = 'INTERNAL';
+export const SEGMENT_ACCOUNT_MANAGER = 'ACCOUNT_MANAGER';
+
+// Service Model
+export const SM_FREE = 'FREE';
+export const SM_PREMIUM = 'PREMIUM';
+
+// Customer Type
+export const RETAIL = 'RETAIL';
+export const INDIVIDUAL = 'INDIVIDUAL';
+export const WHOLESALE = 'WHOLESALE';
+export const CORPORATE = 'CORPORATE';
+
+// Wapu Type
+export const PRIVATE_ENTERPRISE = 'PRIVATE_ENTERPRISE';
+export const GOVERNMENT = 'GOVERNMENT';
+
 // ApiKey status
 export const API_KEY_VALID = 'VALID';
 export const API_KEY_INVALID = 'INVALID';

@@ -6,17 +6,20 @@ import {
 	Index,
 } from 'typeorm';
 import { UserToken } from './userToken.entity';
-import { ActivityLog } from './activityLog.entity';
+import { AuthHistory } from './authHistory.entity';
 import { BaseEntity } from './base.entity';
 import { UserResetPassword } from './userResetPassword.entity';
+import { UserAuditTrail } from './userAuditTrail.entity';
+import { MfaInfo } from './mfaInfo.entity';
 
 /**
  * Entity representing a user in the system.
  * Inherits common fields from the BaseEntity class.
  */
 @Entity('users')
+@Index('idx-users-username', ['username']) // Index for user email
 @Index('idx-users-email', ['email']) // Index for user email
-@Index('idx-users-no_phone', ['no_phone']) // Index for user phone number
+@Index('idx-users-phone_number', ['phone_number']) // Index for user phone number
 @Index('idx-users-status', ['status']) // Index for user phone number
 @Index('idx-users-created_at', ['created_at']) // Index for creation timestamp
 @Index('idx-users-updated_at', ['updated_at']) // Index for update timestamp
@@ -28,6 +31,16 @@ export class User extends BaseEntity {
 	 */
 	@PrimaryGeneratedColumn('uuid')
 	id: string;
+
+	@Column()
+	username: string;
+
+	/**
+	 * Phone number of the User.
+	 * This field is required and indexed for quick lookups.
+	 */
+	@Column()
+	phone_number: string;
 
 	/**
 	 * Email address of the User.
@@ -44,18 +57,17 @@ export class User extends BaseEntity {
 	password: string;
 
 	/**
-	 * Phone number of the User.
-	 * This field is required and indexed for quick lookups.
-	 */
-	@Column()
-	no_phone: string;
-
-	/**
 	 * Status of the User account.
 	 * Can be used to indicate whether the account is active, inactive, etc.
 	 */
-	@Column()
+	@Column({ nullable: true })
 	status: string;
+
+	@Column({ nullable: true })
+	segment: string;
+
+	@Column({ nullable: true })
+	failed_login_attempts: number;
 
 	/**
 	 * One-to-many relationship with UserToken.
@@ -68,12 +80,21 @@ export class User extends BaseEntity {
 	 * One-to-many relationship with ActivityLog.
 	 * Represents all login logs associated with the user.
 	 */
-	@OneToMany(() => ActivityLog, (activity_logs) => activity_logs.user_id)
-	activity_logs: ActivityLog[];
+	@OneToMany(() => AuthHistory, (auth_histories) => auth_histories.user_id)
+	auth_histories: AuthHistory[];
 
 	@OneToMany(
 		() => UserResetPassword,
 		(user_reset_passwords) => user_reset_passwords.user_id,
 	)
 	user_reset_passwords: UserResetPassword[];
+
+	@OneToMany(
+		() => UserAuditTrail,
+		(user_audit_trails) => user_audit_trails.user_id,
+	)
+	user_audit_trails: UserAuditTrail[];
+
+	@OneToMany(() => MfaInfo, (mfa_infos) => mfa_infos.user_id)
+	mfa_infos: MfaInfo[];
 }

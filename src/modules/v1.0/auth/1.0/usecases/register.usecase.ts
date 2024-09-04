@@ -37,7 +37,7 @@ export class RegisterUseCase {
 	 * });
 	 */
 	async register(req: Request) {
-		const { email, no_phone, password } = req.body;
+		const { username, email, phone_number, password } = req.body;
 
 		let find: any = null; // Variable to hold the result of database lookups
 
@@ -51,8 +51,11 @@ export class RegisterUseCase {
 		}
 
 		// Checking if the phone number is provided and if it already exists in the database
-		if (no_phone !== undefined) {
-			find = await this.repository.findByNoPhone('users', no_phone);
+		if (phone_number !== undefined) {
+			find = await this.repository.findByPhoneNumber(
+				'users',
+				phone_number,
+			);
 			if (find) {
 				// Throw an error if the phone number is already registered
 				throw new BadRequestException('Number Phone already in use');
@@ -64,9 +67,10 @@ export class RegisterUseCase {
 
 		// Registering the new user in the database
 		const result = await this.repository.register('users', {
+			username: username,
 			email: email, // Email provided by the user
-			no_phone: no_phone, // Phone number provided by the user
 			password: hashedPassword, // Hashed password for security
+			phone_number: phone_number, // Phone number provided by the user
 			status: USER_ACTIVE, // Status of the new user
 		});
 

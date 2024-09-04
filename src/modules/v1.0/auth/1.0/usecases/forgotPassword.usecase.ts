@@ -47,11 +47,11 @@ export class ForgotPasswordUseCase {
 		if (email) {
 			user = await this.repository.findByEmail('users', email); // Fetch user by email
 		} else if (no_phone) {
-			user = await this.repository.findByNoPhone('users', no_phone); // Fetch user by phone number
+			user = await this.repository.findByPhoneNumber('users', no_phone); // Fetch user by phone number
 		}
 
 		// Check rate limiting for user login attempts
-		checkRateLimit(user.id);
+		await checkRateLimit(user.id, this.repository);
 
 		// Check for suspicious behavior or anomalies in the request
 		await checkAnomalous(req, user.id, this.repository);
@@ -74,7 +74,7 @@ export class ForgotPasswordUseCase {
 					});
 
 					// Log
-					await this.repository.saveActivityLogs(
+					await this.repository.saveAuthHistory(
 						user.id,
 						req.ip,
 						'FORGOT_PASSWORD',
@@ -93,7 +93,7 @@ export class ForgotPasswordUseCase {
 							TOKEN_INVALID,
 						);
 						// Log
-						await this.repository.saveActivityLogs(
+						await this.repository.saveAuthHistory(
 							user.id,
 							req.ip,
 							'FORGOT_PASSWORD',
@@ -120,7 +120,7 @@ export class ForgotPasswordUseCase {
 			await this.repository.saveToken('user_reset_passwords', tokenData);
 
 			// Log the successful password reset request
-			await this.repository.saveActivityLogs(
+			await this.repository.saveAuthHistory(
 				user.id,
 				req.ip,
 				'FORGOT_PASSWORD',
@@ -128,16 +128,16 @@ export class ForgotPasswordUseCase {
 			);
 
 			// Reset the failed login attempts after a successful request
-			resetFailedAttempts(user.id);
+			await resetFailedAttempts(user.id, this.repository);
 
 			// Return the new reset token to the user
 			return { reset_token: newToken };
 		} catch (error) {
 			// If an error occurs, increment the failed login attempts counter
-			incrementFailedAttempts(user.id);
+			await incrementFailedAttempts(user.id, this.repository);
 
 			// Log
-			await this.repository.saveActivityLogs(
+			await this.repository.saveAuthHistory(
 				user.id,
 				req.ip,
 				'FORGOT_PASSWORD',

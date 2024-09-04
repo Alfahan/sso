@@ -36,7 +36,7 @@ export async function checkAnomalous(
 
 	// Retrieve the last login location and device details from the database
 	const lastLogin = await authRepository.getLastLoginLocation(
-		'activity_logs', // The table from which to fetch the last login details
+		'auth_histories', // The table from which to fetch the last login details
 		user_id, // The user ID for whom to fetch the details,
 	);
 
@@ -48,7 +48,7 @@ export async function checkAnomalous(
 	}
 
 	// Check if the current login's IP address differs from the last login's IP address
-	if (lastLogin && lastLogin.ip !== req.ip) {
+	if (lastLogin && lastLogin.ip_origin !== req.ip) {
 		throw new UnauthorizedException(
 			`Anomalous login detected: IP address change`, // Throw exception if IP address is different
 		);
@@ -57,7 +57,7 @@ export async function checkAnomalous(
 	// Check if the current login's device, OS, or browser differs from the last login's details
 	if (
 		lastLogin &&
-		(lastLogin.os !== currentDevice.os ||
+		(lastLogin.os_type !== currentDevice.os ||
 			lastLogin.browser !== currentDevice.browser ||
 			lastLogin.device !== currentDevice.device)
 	) {

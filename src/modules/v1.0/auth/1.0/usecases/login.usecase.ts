@@ -47,7 +47,7 @@ export class LoginUseCase {
 		if (email) {
 			user = await this.repository.findByEmail('users', email); // Fetch user by email
 		} else if (no_phone) {
-			user = await this.repository.findByNoPhone('users', no_phone); // Fetch user by phone number
+			user = await this.repository.findByPhoneNumber('users', no_phone); // Fetch user by phone number
 		}
 
 		// If user is not found, throw an UnauthorizedException
@@ -56,7 +56,7 @@ export class LoginUseCase {
 		}
 
 		// Check rate limiting for user login attempts
-		checkRateLimit(user.id);
+		await checkRateLimit(user.id, this.repository);
 
 		// Check for suspicious login patterns or behavior
 		await checkAnomalous(req, user.id, this.repository);
@@ -67,9 +67,9 @@ export class LoginUseCase {
 			user.password,
 		);
 		if (!isValidPassword) {
-			incrementFailedAttempts(user.id); // Increment failed attempts counter if password is invalid
+			await incrementFailedAttempts(user.id, this.repository); // Increment failed attempts counter if password is invalid
 			// Log login
-			await this.repository.saveActivityLogs(
+			await this.repository.saveAuthHistory(
 				user.id,
 				req.ip,
 				'LOGIN',
@@ -97,7 +97,7 @@ export class LoginUseCase {
 					});
 
 					// Log login
-					await this.repository.saveActivityLogs(
+					await this.repository.saveAuthHistory(
 						user.id,
 						req.ip,
 						'LOGIN',
@@ -105,7 +105,10 @@ export class LoginUseCase {
 					);
 
 					// Return the valid token
-					return { access_token: existingToken };
+					return {
+						access_token: existingToken,
+						refresh_token: null,
+					};
 				} catch (e) {
 					// If token is expired, disable it and generate a new token
 					if (e.name === 'TokenExpiredError') {
@@ -115,7 +118,7 @@ export class LoginUseCase {
 							TOKEN_INVALID,
 						);
 						// Log login
-						await this.repository.saveActivityLogs(
+						await this.repository.saveAuthHistory(
 							user.id,
 							req.ip,
 							'LOGIN',
@@ -141,7 +144,7 @@ export class LoginUseCase {
 			await this.repository.saveToken('user_tokens', tokenData);
 
 			// Log login
-			await this.repository.saveActivityLogs(
+			await this.repository.saveAuthHistory(
 				user.id,
 				req.ip,
 				'LOGIN',
@@ -149,20 +152,23 @@ export class LoginUseCase {
 			);
 
 			// Reset the failed login attempts after successful login
-			resetFailedAttempts(user.id);
+			await resetFailedAttempts(user.id, this.repository);
 
 			// Return the new token to the user
-			return { access_token: newToken };
+			return {
+				access_token: newToken,
+				refresh_token: null,
+			};
 		} catch (error) {
 			// Log login
-			await this.repository.saveActivityLogs(
+			await this.repository.saveAuthHistory(
 				user.id,
 				req.ip,
 				'LOGIN',
 				req.headers['user-agent'],
 			);
 			// Increment failed login attempts counter on errors
-			incrementFailedAttempts(user.id);
+			await incrementFailedAttempts(user.id, this.repository);
 			throw error; // Rethrow the exception
 		}
 	}
