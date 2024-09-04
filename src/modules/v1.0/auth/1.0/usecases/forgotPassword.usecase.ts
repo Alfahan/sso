@@ -73,7 +73,7 @@ export class ForgotPasswordUseCase {
 						ignoreExpiration: false,
 					});
 
-					// Log the successful attempt
+					// Log
 					await this.repository.saveActivityLogs(
 						user.id,
 						req.ip,
@@ -92,12 +92,20 @@ export class ForgotPasswordUseCase {
 							existingTokenReset,
 							TOKEN_INVALID,
 						);
+						// Log
+						await this.repository.saveActivityLogs(
+							user.id,
+							req.ip,
+							'FORGOT_PASSWORD',
+							req.headers['user-agent'],
+						);
 					} else {
 						// Rethrow the exception for other token-related errors
 						throw e;
 					}
 				}
 			}
+
 
 			// If no valid token exists or if the token has expired, generate a new JWT token
 			const uniqueId = CryptoTs.encryptWithAes('AES_256_CBC', user.id);
@@ -128,6 +136,14 @@ export class ForgotPasswordUseCase {
 		} catch (error) {
 			// If an error occurs, increment the failed login attempts counter
 			incrementFailedAttempts(user.id);
+
+			// Log
+			await this.repository.saveActivityLogs(
+				user.id,
+				req.ip,
+				'FORGOT_PASSWORD',
+				req.headers['user-agent'],
+			);
 			throw error; // Rethrow the exception
 		}
 	}

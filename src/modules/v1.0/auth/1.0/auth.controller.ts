@@ -56,7 +56,7 @@ export class AuthControllerV10 {
 				return ApiResponse.fail(
 					res,
 					error.message,
-					errorCode.ERDTTD0001,
+					errorCode.ERDTTD0006,
 					error.stack,
 				); // Handling validation error
 			}
@@ -146,13 +146,13 @@ export class AuthControllerV10 {
 	): Promise<Response> {
 		try {
 			await this.logoutUseCase.logout(req); // Calling logout logic
-			return ApiResponse.success(res, null, successCode.SCDTDT0002); // Returning success response
+			return ApiResponse.success(res, null, successCode.SCDTDT0007); // Returning success response
 		} catch (error) {
 			if (error instanceof Error) {
 				return ApiResponse.fail(
 					res,
 					error.message,
-					errorCode.ERDTTD0002,
+					errorCode.ERDTTD0008,
 					error.stack,
 				); // Handling logout error
 			}
@@ -178,13 +178,13 @@ export class AuthControllerV10 {
 	): Promise<Response> {
 		try {
 			const data = await this.registerUseCase.register(req); // Calling registration logic
-			return ApiResponse.success(res, data, successCode.SCDTDT0001); // Returning success response
+			return ApiResponse.success(res, data, successCode.SCDTDT0008); // Returning success response
 		} catch (error) {
 			if (error instanceof Error) {
 				return ApiResponse.fail(
 					res,
 					error.message,
-					errorCode.ERDTTD0001,
+					errorCode.ERDTTD0009,
 					error.stack,
 				); // Handling registration error
 			}
@@ -209,14 +209,14 @@ export class AuthControllerV10 {
 		@Req() req: Request, // Injecting the Express request object
 	): Promise<Response> {
 		try {
-			await this.forgotPasswordUseCase.forgotPassword(req); // Calling forgot password logic
-			return ApiResponse.success(res, null, successCode.SCDTDT0001); // Returning success response
+			const data = await this.forgotPasswordUseCase.forgotPassword(req); // Calling forgot password logic
+			return ApiResponse.success(res, data, successCode.SCDTDT0009); // Returning success response
 		} catch (error) {
 			if (error instanceof Error) {
 				return ApiResponse.fail(
 					res,
 					error.message,
-					errorCode.ERDTTD0001,
+					errorCode.ERDTTD0010,
 					error.stack,
 				); // Handling forgot password error
 			}
@@ -241,8 +241,8 @@ export class AuthControllerV10 {
 		@Req() req: Request, // Injecting the Express request object
 	): Promise<Response> {
 		try {
-			await this.resetPasswordUseCase.resetPassword(req); // Calling reset password logic
-			return ApiResponse.success(res, null, successCode.SCDTDT0002); // Returning success response
+			const data = await this.resetPasswordUseCase.resetPassword(req); // Calling reset password logic
+			return ApiResponse.success(res, data, successCode.SCDTDT0002); // Returning success response
 		} catch (error) {
 			if (error instanceof Error) {
 				return ApiResponse.fail(
