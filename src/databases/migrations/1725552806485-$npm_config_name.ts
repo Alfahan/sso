@@ -1,18 +1,9 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class $npmConfigName1725438695260 implements MigrationInterface {
-	name = ' $npmConfigName1725438695260';
+export class $npmConfigName1725552806485 implements MigrationInterface {
+	name = ' $npmConfigName1725552806485';
 
 	public async up(queryRunner: QueryRunner): Promise<void> {
-		await queryRunner.query(
-			`CREATE TABLE "user_tokens" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "token" character varying NOT NULL, "status" character varying NOT NULL, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "user_id" uuid, CONSTRAINT "PK_63764db9d9aaa4af33e07b2f4bf" PRIMARY KEY ("id"))`,
-		);
-		await queryRunner.query(
-			`CREATE INDEX "idx-user-tokens-status" ON "user_tokens" ("status") `,
-		);
-		await queryRunner.query(
-			`CREATE INDEX "idx-user-tokens-user_id" ON "user_tokens" ("user_id") `,
-		);
 		await queryRunner.query(
 			`CREATE TABLE "auth_histories" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "ip_origin" character varying, "geolocation" character varying, "country" character varying, "browser" character varying, "os_type" character varying, "device" character varying, "action_type" character varying NOT NULL, "action_at" TIMESTAMP NOT NULL DEFAULT now(), "user_id" uuid, CONSTRAINT "PK_ef1314fa983d71bb54a74ca6d40" PRIMARY KEY ("id"))`,
 		);
@@ -74,6 +65,33 @@ export class $npmConfigName1725438695260 implements MigrationInterface {
 			`CREATE INDEX "idx-users-username" ON "users" ("username") `,
 		);
 		await queryRunner.query(
+			`CREATE TABLE "user_sessions" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "token" character varying NOT NULL, "refresh_token" character varying NOT NULL, "status" character varying NOT NULL, "ip_origin" character varying, "geolocation" character varying, "country" character varying, "browser" character varying, "os_type" character varying, "device" character varying, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "user_id" uuid, CONSTRAINT "PK_e93e031a5fed190d4789b6bfd83" PRIMARY KEY ("id"))`,
+		);
+		await queryRunner.query(
+			`CREATE INDEX "idx-user-sessions-device" ON "user_sessions" ("device") `,
+		);
+		await queryRunner.query(
+			`CREATE INDEX "idx-user-sessions-os_type" ON "user_sessions" ("os_type") `,
+		);
+		await queryRunner.query(
+			`CREATE INDEX "idx-user-sessions-browser" ON "user_sessions" ("browser") `,
+		);
+		await queryRunner.query(
+			`CREATE INDEX "idx-user-sessions-country" ON "user_sessions" ("country") `,
+		);
+		await queryRunner.query(
+			`CREATE INDEX "idx-user-sessions-geolocation" ON "user_sessions" ("geolocation") `,
+		);
+		await queryRunner.query(
+			`CREATE INDEX "idx-user-sessions-ip_origin" ON "user_sessions" ("ip_origin") `,
+		);
+		await queryRunner.query(
+			`CREATE INDEX "idx-user-sessions-status" ON "user_sessions" ("status") `,
+		);
+		await queryRunner.query(
+			`CREATE INDEX "idx-user-sessions-user_id" ON "user_sessions" ("user_id") `,
+		);
+		await queryRunner.query(
 			`CREATE TABLE "todos" ("created_at" TIMESTAMP NOT NULL DEFAULT now(), "created_by" character varying NOT NULL DEFAULT '1', "created_name" character varying NOT NULL DEFAULT 'System', "updated_at" TIMESTAMP DEFAULT now(), "updated_by" character varying, "updated_name" character varying, "deleted_at" TIMESTAMP, "deleted_by" character varying, "deleted_name" character varying, "id" uuid NOT NULL DEFAULT uuid_generate_v4(), "title" character varying NOT NULL, "completed" boolean NOT NULL DEFAULT false, CONSTRAINT "PK_ca8cafd59ca6faaf67995344225" PRIMARY KEY ("id"))`,
 		);
 		await queryRunner.query(
@@ -101,9 +119,6 @@ export class $npmConfigName1725438695260 implements MigrationInterface {
 			`CREATE INDEX "idx-api-keys-third_party_name" ON "api_keys" ("third_party_name") `,
 		);
 		await queryRunner.query(
-			`ALTER TABLE "user_tokens" ADD CONSTRAINT "FK_9e144a67be49e5bba91195ef5de" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
-		);
-		await queryRunner.query(
 			`ALTER TABLE "auth_histories" ADD CONSTRAINT "FK_bad980508eb870587b0a1cf13f7" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
 		);
 		await queryRunner.query(
@@ -116,6 +131,9 @@ export class $npmConfigName1725438695260 implements MigrationInterface {
 			`ALTER TABLE "mfa_infos" ADD CONSTRAINT "FK_1f3a3904b0b4f53ac44ac8fb2f2" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
 		);
 		await queryRunner.query(
+			`ALTER TABLE "user_sessions" ADD CONSTRAINT "FK_e9658e959c490b0a634dfc54783" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+		);
+		await queryRunner.query(
 			`ALTER TABLE "customers" ADD CONSTRAINT "FK_11d81cd7be87b6f8865b0cf7661" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
 		);
 	}
@@ -123,6 +141,9 @@ export class $npmConfigName1725438695260 implements MigrationInterface {
 	public async down(queryRunner: QueryRunner): Promise<void> {
 		await queryRunner.query(
 			`ALTER TABLE "customers" DROP CONSTRAINT "FK_11d81cd7be87b6f8865b0cf7661"`,
+		);
+		await queryRunner.query(
+			`ALTER TABLE "user_sessions" DROP CONSTRAINT "FK_e9658e959c490b0a634dfc54783"`,
 		);
 		await queryRunner.query(
 			`ALTER TABLE "mfa_infos" DROP CONSTRAINT "FK_1f3a3904b0b4f53ac44ac8fb2f2"`,
@@ -137,9 +158,6 @@ export class $npmConfigName1725438695260 implements MigrationInterface {
 			`ALTER TABLE "auth_histories" DROP CONSTRAINT "FK_bad980508eb870587b0a1cf13f7"`,
 		);
 		await queryRunner.query(
-			`ALTER TABLE "user_tokens" DROP CONSTRAINT "FK_9e144a67be49e5bba91195ef5de"`,
-		);
-		await queryRunner.query(
 			`DROP INDEX "public"."idx-api-keys-third_party_name"`,
 		);
 		await queryRunner.query(`DROP INDEX "public"."idx-api-keys-status"`);
@@ -150,6 +168,31 @@ export class $npmConfigName1725438695260 implements MigrationInterface {
 		await queryRunner.query(`DROP INDEX "public"."idx-todos-updated_at"`);
 		await queryRunner.query(`DROP INDEX "public"."idx-todos-deleted_at"`);
 		await queryRunner.query(`DROP TABLE "todos"`);
+		await queryRunner.query(
+			`DROP INDEX "public"."idx-user-sessions-user_id"`,
+		);
+		await queryRunner.query(
+			`DROP INDEX "public"."idx-user-sessions-status"`,
+		);
+		await queryRunner.query(
+			`DROP INDEX "public"."idx-user-sessions-ip_origin"`,
+		);
+		await queryRunner.query(
+			`DROP INDEX "public"."idx-user-sessions-geolocation"`,
+		);
+		await queryRunner.query(
+			`DROP INDEX "public"."idx-user-sessions-country"`,
+		);
+		await queryRunner.query(
+			`DROP INDEX "public"."idx-user-sessions-browser"`,
+		);
+		await queryRunner.query(
+			`DROP INDEX "public"."idx-user-sessions-os_type"`,
+		);
+		await queryRunner.query(
+			`DROP INDEX "public"."idx-user-sessions-device"`,
+		);
+		await queryRunner.query(`DROP TABLE "user_sessions"`);
 		await queryRunner.query(`DROP INDEX "public"."idx-users-username"`);
 		await queryRunner.query(`DROP INDEX "public"."idx-users-email"`);
 		await queryRunner.query(`DROP INDEX "public"."idx-users-phone_number"`);
@@ -182,10 +225,5 @@ export class $npmConfigName1725438695260 implements MigrationInterface {
 			`DROP INDEX "public"."idx-auth-histories-action_type"`,
 		);
 		await queryRunner.query(`DROP TABLE "auth_histories"`);
-		await queryRunner.query(
-			`DROP INDEX "public"."idx-user-tokens-user_id"`,
-		);
-		await queryRunner.query(`DROP INDEX "public"."idx-user-tokens-status"`);
-		await queryRunner.query(`DROP TABLE "user_tokens"`);
 	}
 }

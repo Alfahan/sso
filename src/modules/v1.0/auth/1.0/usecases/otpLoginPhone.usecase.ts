@@ -8,6 +8,7 @@ import {
 	incrementFailedAttempts,
 	resetFailedAttempts,
 } from '@app/middlewares/checkRateLimit.middleware';
+import { TOKEN_VALID } from '@app/const';
 
 @Injectable()
 export class OtpLoginPhoneUseCase {
@@ -44,7 +45,11 @@ export class OtpLoginPhoneUseCase {
 		await checkRateLimit(user.id, this.repository);
 
 		// Check if the user already has an active OTP that hasn't expired
-		const lastOtp = await this.repository.findLastOtp('mfa_infos', user.id);
+		const lastOtp = await this.repository.findLastOtp(
+			'mfa_infos',
+			TOKEN_VALID,
+			user.id,
+		);
 		const currentTime = new Date();
 
 		// If an OTP is still active, block the request and inform the user when they can request again
@@ -72,6 +77,7 @@ export class OtpLoginPhoneUseCase {
 			otp_code: encryptOtp.Value.toString(),
 			otp_expired_at: otpExpired,
 			user_id: user.id,
+			status: TOKEN_VALID,
 		});
 
 		// Send the OTP code to the user's phone number

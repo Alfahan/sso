@@ -36,70 +36,51 @@ export class ResetPasswordUseCase {
 		);
 
 		// Check if the user has a valid reset password token
-		const existingToken = await this.repository.cekValidateToken(
-			'user_reset_passwords',
-			{
-				user_id: user_id,
-				status: TOKEN_VALID,
-			},
-		);
+		const existingToken =
+			await this.repository.checkTokenUserResetPassByUserId(
+				'user_reset_passwords',
+				{
+					user_id: user_id,
+					status: TOKEN_VALID,
+				},
+			);
 
 		// If a valid token exists, proceed with the password reset process
 		if (existingToken) {
-			try {
-				let user = null;
+			// Hash the new password using bcrypt with a salt factor of 10
+			const hashedPassword = await bcrypt.hash(new_password, 10);
 
-				// Fetch the user by their ID
-				if (user_id) {
-					user = await this.repository.findById('users', user_id);
-				}
+			// Update the user's password in the database
+			const result = await this.repository.resetPassword('users', {
+				id: user_id,
+				password: hashedPassword,
+			});
 
-				// If user is not found, throw an UnauthorizedException
-				if (!user) {
-					throw new UnauthorizedException('Invalid credentials');
-				}
+			// Invalidate the used reset password token
+			await this.repository.updateTokenResetPass(
+				'user_reset_passwords',
+				TOKEN_INVALID,
+				user_id,
+			);
 
-				// Hash the new password using bcrypt with a salt factor of 10
-				const hashedPassword = await bcrypt.hash(new_password, 10);
+			// Log successful
+			// await this.repository.saveAuthHistory(
+			// 	user_id,
+			// 	req.ip,
+			// 	'RESET_PASSWORD',
+			// 	req.headers['user-agent'],
+			// );
 
-				// Update the user's password in the database
-				const result = await this.repository.resetPassword('users', {
-					id: user_id,
-					password: hashedPassword,
-				});
-
-				// Invalidate the used reset password token
-				await this.repository.updateTokenStatus(
-					'user_reset_passwords',
-					token,
-					TOKEN_INVALID,
-				);
-
-				// Log successful
-				await this.repository.saveAuthHistory(
-					user_id,
-					req.ip,
-					'RESET_PASSWORD',
-					req.headers['user-agent'],
-				);
-
-				return result;
-			} catch (e) {
-				// Handle token expiration error
-				if (e.name === 'TokenExpiredError') {
-					await this.repository.updateTokenStatus(
-						'user_reset_passwords',
-						token,
-						TOKEN_INVALID,
-					);
-					throw new UnauthorizedException('Token Expired');
-				} else {
-					throw e; // Rethrow other errors
-				}
-			}
+			return result;
 		}
 
+		await this.repository.updateTokenResetPass(
+			'user_reset_passwords',
+			TOKEN_INVALID,
+			user_id,
+		);
+
 		// If the token is invalid, throw an UnauthorizedException
-		throw new UnauthorizedException('Token Expired');
+		throw new UnauthorizedException('Invalid credentials');
 	}
 }

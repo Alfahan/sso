@@ -20,10 +20,10 @@ export class UserResetPassword {
 	@JoinColumn({ name: 'user_id' })
 	user_id: string;
 
-	@Column()
+	@Column({ nullable: true })
 	token: string;
 
-	@Column()
+	@Column({ nullable: true })
 	status: string;
 
 	@Column({

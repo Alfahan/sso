@@ -83,4 +83,10 @@ export const ssoSuccessMessageCode = {
 		fabdCode: 'SCDTDT0012', // A unique code representing the success scenario.
 		message: 'Username valid.', // Description of the success scenario.
 	},
+	/*** Reset Password success */
+	SCDTDT0013: {
+		httpCode: HttpStatus.CREATED, // HTTP status code indicating that the request has been fulfilled and has resulted in the creation of a resource.
+		fabdCode: 'SCDTDT0010', // A unique code representing the success scenario.
+		message: 'Reset Password success.', // Description of the success scenario.
+	},
 };

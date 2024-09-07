@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthRepository } from '../../repositories/auth.repository'; // Repository for database access related to authentication
 import { Request } from 'express'; // Express request type for handling HTTP requests
 import { JwtService } from '@nestjs/jwt'; // Service for handling JWT token verification and invalidation
-import { TOKEN_INVALID } from '@app/const'; // Constant for marking tokens as invalid
+import { LOGGED_OUT } from '@app/const'; // Constant for marking tokens as invalid
 import CryptoTs from 'pii-agent-ts';
 
 /**
@@ -57,25 +57,24 @@ export class LogoutUseCase {
 
 		// Verify the JWT token to extract the payload (which contains the user ID)
 		const payload = this.jwtService.verify(token);
-		const userId = CryptoTs.decryptWithAes(
+		const id = CryptoTs.decryptWithAes(
 			'AES_256_CBC',
 			Buffer.from(payload.sub),
 		); // Extract the user ID (subject) from the token payload
 		try {
 			// Invalidate the token by updating its status to TOKEN_INVALID in the database
 			await this.repository.updateTokenStatus(
-				'user_tokens',
-				token,
-				TOKEN_INVALID, // Mark the token as disabled (logged out)
+				'user_sessions',
+				LOGGED_OUT, // (logged out)
+				id,
 			);
-
 			// Log the logout activity with the user's IP and user-agent details
-			await this.repository.saveAuthHistory(
-				userId,
-				req.ip,
-				'LOGOUT',
-				req.headers['user-agent'],
-			);
+			// await this.repository.saveAuthHistory(
+			// 	userId,
+			// 	req.ip,
+			// 	'LOGOUT',
+			// 	req.headers['user-agent'],
+			// );
 		} catch (error) {
 			// Rethrow any errors encountered during the token verification or database operations
 			throw error;

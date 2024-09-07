@@ -32,6 +32,11 @@ export const USER_ACTIVE = 'ACTIVE';
 export const USER_INACTIVE = 'INACTIVE';
 export const USER_BLOCKED = 'BLOCKED';
 
+// Token status user Login
+export const LOGGED_IN = 'LOGGED_IN';
+export const LOGGED_OUT = 'LOGGED_OUT';
+export const BLOCKED = 'BLOCKED';
+
 // Token status
 export const TOKEN_VALID = 'VALID';
 export const TOKEN_INVALID = 'INVALID';

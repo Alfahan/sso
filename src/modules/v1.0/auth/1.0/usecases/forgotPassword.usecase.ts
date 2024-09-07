@@ -1,12 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthRepository } from '../../repositories/auth.repository';
-import {
-	checkRateLimit,
-	incrementFailedAttempts,
-	resetFailedAttempts,
-} from '@app/middlewares/checkRateLimit.middleware';
 import { Request } from 'express';
-import { checkAnomalous } from '@app/middlewares/checkAnomalous.middleware';
+// import { checkAnomalous } from '@app/middlewares/checkAnomalous.middleware';
 import { TOKEN_INVALID, TOKEN_VALID } from '@app/const';
 import { JwtService } from '@nestjs/jwt';
 import CryptoTs from 'pii-agent-ts';
@@ -38,27 +33,24 @@ export class ForgotPasswordUseCase {
 	 * @returns {Promise<{ reset_token: string }>} - The reset token to be returned to the user.
 	 * @throws Will throw an error if any step fails, including rate limiting, token validation, or user identification.
 	 */
-	async forgotPassword(req: Request): Promise<{ reset_token: string }> {
+	async forgotPassword(req: Request) {
 		// Extract email and phone number from the request body
-		const { no_phone, email } = req.body;
+		const { email } = req.body;
+
 		let user = null;
 
 		// Find the user by email or phone number
 		if (email) {
 			user = await this.repository.findByEmail('users', email); // Fetch user by email
-		} else if (no_phone) {
-			user = await this.repository.findByPhoneNumber('users', no_phone); // Fetch user by phone number
 		}
 
-		// Check rate limiting for user login attempts
-		await checkRateLimit(user.id, this.repository);
+		// If user is not found, throw an UnauthorizedException
+		if (!user) {
+			throw new UnauthorizedException('Invalid credentials');
+		}
 
-		// Check for suspicious behavior or anomalies in the request
-		await checkAnomalous(req, user.id, this.repository);
-
-		try {
-			// Check if the user already has a valid token
-			const existingTokenReset = await this.repository.cekValidateToken(
+		const existingTokenUserResetPass =
+			await this.repository.checkTokenUserResetPassByUserId(
 				'user_reset_passwords',
 				{
 					user_id: user.id,
@@ -66,84 +58,59 @@ export class ForgotPasswordUseCase {
 				},
 			);
 
-			if (existingTokenReset) {
-				try {
-					// Verify if the existing token is still valid (not expired)
-					this.jwtService.verify(existingTokenReset, {
-						ignoreExpiration: false,
-					});
+		if (existingTokenUserResetPass) {
+			try {
+				this.jwtService.verify(existingTokenUserResetPass.token, {
+					ignoreExpiration: false,
+				});
 
-					// Log
-					await this.repository.saveAuthHistory(
+				return { reset_token: existingTokenUserResetPass.token };
+			} catch (e) {
+				if (e.name === 'TokenExpiredError') {
+					// Log login
+					// await this.repository.saveAuthHistory(
+					// 	user.id,
+					// 	req.ip,
+					// 	'LOGIN',
+					// 	req.headers['user-agent'],
+					// );
+
+					await this.repository.updateTokenResetPass(
+						'user_reset_passwords',
+						TOKEN_INVALID,
 						user.id,
-						req.ip,
-						'FORGOT_PASSWORD',
-						req.headers['user-agent'],
 					);
-
-					// Return the valid reset token to the user
-					return { reset_token: existingTokenReset };
-				} catch (e) {
-					// Handle token expiration errors
-					if (e.name === 'TokenExpiredError') {
-						// Mark the token as invalid if it has expired
-						await this.repository.updateTokenStatus(
-							'user_reset_passwords',
-							existingTokenReset,
-							TOKEN_INVALID,
-						);
-						// Log
-						await this.repository.saveAuthHistory(
-							user.id,
-							req.ip,
-							'FORGOT_PASSWORD',
-							req.headers['user-agent'],
-						);
-					} else {
-						// Rethrow the exception for other token-related errors
-						throw e;
-					}
 				}
 			}
-
-			// If no valid token exists or if the token has expired, generate a new JWT token
-			const uniqueId = CryptoTs.encryptWithAes('AES_256_CBC', user.id);
-			const payload = { sub: uniqueId.Value.toString() }; // Payload contains the user id (sub)
-			const newToken = this.jwtService.sign(payload); // Create the new JWT token
-
-			// Save the new token in the database
-			const tokenData = {
-				user_id: user.id,
-				token: newToken,
-				status: TOKEN_VALID,
-			};
-			await this.repository.saveToken('user_reset_passwords', tokenData);
-
-			// Log the successful password reset request
-			await this.repository.saveAuthHistory(
-				user.id,
-				req.ip,
-				'FORGOT_PASSWORD',
-				req.headers['user-agent'],
-			);
-
-			// Reset the failed login attempts after a successful request
-			await resetFailedAttempts(user.id, this.repository);
-
-			// Return the new reset token to the user
-			return { reset_token: newToken };
-		} catch (error) {
-			// If an error occurs, increment the failed login attempts counter
-			await incrementFailedAttempts(user.id, this.repository);
-
-			// Log
-			await this.repository.saveAuthHistory(
-				user.id,
-				req.ip,
-				'FORGOT_PASSWORD',
-				req.headers['user-agent'],
-			);
-			throw error; // Rethrow the exception
 		}
+
+		// If no valid token exists or if the token has expired, generate a new JWT token
+		const encryptUuid = CryptoTs.encryptWithAes('AES_256_CBC', user.id);
+		const payloadToken = { sub: encryptUuid.Value.toString() }; // The payload contains the user id (sub)
+		const newToken = this.jwtService.sign(payloadToken, {
+			expiresIn: '2m', // Set token expiration time to 2 minutes
+		}); // Create a new JWT token
+
+		// Save the new token in the database
+		const tokenData = {
+			user_id: user.id,
+			token: newToken,
+			status: TOKEN_VALID,
+		};
+		await this.repository.saveTokenUserResetPass(
+			'user_reset_passwords',
+			tokenData,
+		);
+
+		// Log the successful password reset request
+		// await this.repository.saveAuthHistory(
+		// 	user.id,
+		// 	req.ip,
+		// 	'FORGOT_PASSWORD',
+		// 	req.headers['user-agent'],
+		// );
+
+		// Return the new reset token to the user
+		return { reset_token: newToken };
 	}
 }

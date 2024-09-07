@@ -15,7 +15,8 @@ import { ForgotPasswordUseCase } from './usecases/forgotPassword.usecase'; // Im
 import { ResetPasswordUseCase } from './usecases/resetPassword.usecase'; // Importing the use case for handling password resets
 import { OtpLoginPhoneUseCase } from './usecases/otpLoginPhone.usecase'; // Importing the use case for handling OTP-based phone login
 import { LoginPhoneUseCase } from './usecases/loginPhone.usecase'; // Importing the use case for handling phone-based login
-// import { RefreshTokenUseCase } from './usecases/refreshToken.usecase'; // Optional: Importing RefreshTokenUseCase for token refresh logic, if needed
+import { VerificationOtpUseCase } from './usecases/verificationOtp.usercase';
+import { RefreshTokenUseCase } from './usecases/refreshToken.usecase';
 
 /**
  * @module AuthModuleV10
@@ -30,7 +31,6 @@ import { LoginPhoneUseCase } from './usecases/loginPhone.usecase'; // Importing 
 		PassportModule, // PassportModule integrates the authentication strategies within NestJS
 		JwtModule.register({
 			secret: SECRET_KEY, // The secret key used to sign JWT tokens
-			signOptions: { expiresIn: '15m' }, // Configuring JWT tokens to expire after 15 minutes
 		}),
 		TypeOrmModule.forFeature([]), // Importing TypeOrmModule for integrating with entities (none provided in this example)
 	],
@@ -38,7 +38,8 @@ import { LoginPhoneUseCase } from './usecases/loginPhone.usecase'; // Importing 
 	providers: [
 		ValidateUseCase, // Use case for handling validation logic (e.g., email and phone validation)
 		LoginUseCase, // Use case for handling login functionality
-		// RefreshTokenUseCase, // Optional: Use case for handling token refreshing if enabled in the future
+		VerificationOtpUseCase,
+		RefreshTokenUseCase, // Optional: Use case for handling token refreshing if enabled in the future
 		RegisterUseCase, // Use case for handling registration of new users
 		AuthRepository, // Repository for interacting with the authentication data (e.g., users, tokens)
 		ApiKeyRepository, // Repository for managing API keys

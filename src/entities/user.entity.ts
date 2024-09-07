@@ -5,7 +5,7 @@ import {
 	OneToMany,
 	Index,
 } from 'typeorm';
-import { UserToken } from './userToken.entity';
+import { UserSession } from './userSession.entity';
 import { AuthHistory } from './authHistory.entity';
 import { BaseEntity } from './base.entity';
 import { UserResetPassword } from './userResetPassword.entity';
@@ -73,8 +73,8 @@ export class User extends BaseEntity {
 	 * One-to-many relationship with UserToken.
 	 * Represents all tokens associated with the user.
 	 */
-	@OneToMany(() => UserToken, (user_tokens) => user_tokens.user_id)
-	user_tokens: UserToken[];
+	@OneToMany(() => UserSession, (user_sessions) => user_sessions.user_id)
+	user_sessions: UserSession[];
 
 	/**
 	 * One-to-many relationship with ActivityLog.

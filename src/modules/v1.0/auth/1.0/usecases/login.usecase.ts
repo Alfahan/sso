@@ -8,8 +8,12 @@ import {
 	incrementFailedAttempts,
 	resetFailedAttempts,
 } from '@app/middlewares/checkRateLimit.middleware';
-import { TOKEN_VALID, TOKEN_INVALID } from '@app/const'; // Constants for token status
+import { LOGGED_IN, TOKEN_VALID } from '@app/const'; // Constants for token status
 import CryptoTs from 'pii-agent-ts';
+import * as useragent from 'useragent'; // Library to parse and identify user agent (e.g., browser, OS)
+import * as geoip from 'geoip-lite'; // Library to get geolocation data from IP addresses
+import * as path from 'path';
+import Notification from 'notif-agent-ts';
 // import { checkAnomalous } from '@app/middlewares/checkAnomalous.middleware';
 
 /**
@@ -24,23 +28,11 @@ export class LoginUseCase {
 		private readonly jwtService: JwtService, // Service to handle JWT token creation and validation
 	) {}
 
-	/**
-	 * This method manages the login process for users by validating credentials and returning a JWT token.
-	 *
-	 * Steps:
-	 * 1. It checks whether the user exists by looking up the email or phone number in the database.
-	 * 2. If the user is found, it validates the provided password against the stored hashed password.
-	 * 3. It checks rate limiting and anomalous behavior.
-	 * 4. It handles the logic for existing valid JWT tokens (validity, expiration, regeneration).
-	 * 5. If no valid token exists, it generates a new JWT token and saves it to the database.
-	 * 6. It logs the login attempt (success or failure) and resets or increments login attempt counts.
-	 *
-	 * @param req - The incoming request containing login data (email, phone number, and password).
-	 * @returns An object containing the JWT token if login is successful.
-	 * @throws UnauthorizedException - Throws if the credentials are invalid or any suspicious behavior is detected.
-	 */
 	async login(req: Request) {
 		const { email, password } = req.body;
+		const geo = geoip.lookup(req.ip);
+		const agent = useragent.parse(req.headers['user-agent']);
+
 		let user = null;
 
 		// Find the user by email or phone number
@@ -64,109 +56,150 @@ export class LoginUseCase {
 			password,
 			user.password,
 		);
+
 		if (!isValidPassword) {
 			await incrementFailedAttempts(user.id, this.repository); // Increment failed attempts counter if password is invalid
 			// Log login
-			await this.repository.saveAuthHistory(
-				user.id,
-				req.ip,
-				'LOGIN',
-				req.headers['user-agent'],
-			);
+			// await this.repository.saveAuthHistory(
+			// 	user.id,
+			// 	req.ip,
+			// 	'LOGIN',
+			// 	req.headers['user-agent'],
+			// );
 			throw new UnauthorizedException('Invalid credentials');
 		}
 
 		try {
 			// Check if the user already has a valid token
 			const existingToken = await this.repository.cekValidateToken(
-				'user_tokens',
+				'user_sessions',
 				{
 					user_id: user.id,
-					status: TOKEN_VALID,
+					ip_origin: req.ip,
+					geolocation: geo
+						? `${geo.city}, ${geo.region}, ${geo.country}`
+						: 'Unknown',
+					country: geo?.country || 'Unknown',
+					browser: agent.toAgent(),
+					os_type: agent.os.toString(),
+					device: agent.device.toString(),
 				},
 			);
 
-			// If a valid token is found, check for expiration
 			if (existingToken) {
-				try {
-					// Verify the existing token. Throws an error if the token is expired.
-					this.jwtService.verify(existingToken, {
-						ignoreExpiration: false,
-					});
+				// try {
+				// Verify the existing token. Throws an error if the token is expired.
+				this.jwtService.verify(existingToken.token, {
+					ignoreExpiration: false,
+				});
 
-					// Log login
-					await this.repository.saveAuthHistory(
-						user.id,
-						req.ip,
-						'LOGIN',
-						req.headers['user-agent'],
-					);
+				// Log login
+				// await this.repository.saveAuthHistory(
+				// 	user.id,
+				// 	req.ip,
+				// 	'LOGIN',
+				// 	req.headers['user-agent'],
+				// );
 
-					// Return the valid token
-					return {
-						access_token: existingToken,
-						refresh_token: null,
-					};
-				} catch (e) {
-					// If token is expired, disable it and generate a new token
-					if (e.name === 'TokenExpiredError') {
-						await this.repository.updateTokenStatus(
-							'user_tokens',
-							existingToken,
-							TOKEN_INVALID,
-						);
-						// Log login
-						await this.repository.saveAuthHistory(
-							user.id,
-							req.ip,
-							'LOGIN',
-							req.headers['user-agent'],
-						);
-					} else {
-						throw e; // For other token-related errors, rethrow the exception
-					}
-				}
+				await resetFailedAttempts(user.id, this.repository);
+
+				await this.repository.updateTokenStatus(
+					'user_sessions',
+					LOGGED_IN, // (logged in)
+					existingToken.id,
+				);
+
+				// Return the valid token
+				return {
+					access_token: existingToken.token,
+					refresh_token: existingToken.refresh_token,
+				};
+				// } catch (e) {
+				// 	// If token is expired, disable it and generate a new token
+				// 	if (e.name === 'TokenExpiredError') {
+				// 		// Log login
+				// 		// await this.repository.saveAuthHistory(
+				// 		// 	user.id,
+				// 		// 	req.ip,
+				// 		// 	'LOGIN',
+				// 		// 	req.headers['user-agent'],
+				// 		// );
+				// 		throw new UnauthorizedException('Token Expired');
+				// 	} else {
+				// 		throw e; // For other token-related errors, rethrow the exception
+				// 	}
+				// }
 			}
 
-			// Generate a new JWT token if no valid token exists or if the token has expired
-			const uniqueId = CryptoTs.encryptWithAes('AES_256_CBC', user.id);
-			const payload = { sub: uniqueId.Value.toString() }; // The payload contains the user id (sub)
-			const newToken = this.jwtService.sign(payload); // Create a new JWT token
-
-			// Save the new token in the database
-			const tokenData = {
-				user_id: user.id,
-				token: newToken,
-				status: TOKEN_VALID,
-			};
-			await this.repository.saveToken('user_tokens', tokenData);
-
-			// Log login
-			await this.repository.saveAuthHistory(
+			// Check if the user already has an active OTP that hasn't expired
+			const lastOtp = await this.repository.findLastOtp(
+				'mfa_infos',
+				TOKEN_VALID,
 				user.id,
-				req.ip,
-				'LOGIN',
-				req.headers['user-agent'],
 			);
+			const currentTime = new Date();
 
-			// Reset the failed login attempts after successful login
+			// If an OTP is still active, block the request and inform the user when they can request again
+			if (lastOtp && lastOtp.otp_expired_at > currentTime) {
+				const timeDifference =
+					(lastOtp.otp_expired_at.getTime() - currentTime.getTime()) /
+					60000;
+				await incrementFailedAttempts(user.id, this.repository); // Increment failed attempts if trying too soon
+				throw new Error(
+					`OTP already sent. Please wait ${Math.ceil(timeDifference)} minute(s) to request again.`,
+				);
+			}
+
+			// Generate a new OTP code
+			const otpCode = Math.floor(
+				100000 + Math.random() * 900000,
+			).toString();
+
+			// Encrypt the OTP using AES-256-CBC encryption
+			const encryptOtp = CryptoTs.encryptWithAes('AES_256_CBC', otpCode);
+
+			// Set the expiration time for the OTP to 5 minutes from now
+			const otpExpired = this.addMinutesToDate(new Date(), 1);
+
+			// Save the encrypted OTP and its expiration time to the database
+			await this.repository.saveOtp('mfa_infos', {
+				otp_code: encryptOtp.Value.toString(),
+				otp_expired_at: otpExpired,
+				user_id: user.id,
+				status: TOKEN_VALID,
+			});
+
+			const mailOptions = {
+				from: 'sso.fabdigital@gmail.com',
+				to: [email],
+				subject: 'OTP Verification',
+
+				templatePath: path.join(
+					process.cwd(),
+					'assets',
+					'otpVerification.html',
+				),
+
+				context: {
+					otpCode: otpCode,
+				},
+			};
+
 			await resetFailedAttempts(user.id, this.repository);
 
-			// Return the new token to the user
-			return {
-				access_token: newToken,
-				refresh_token: null,
-			};
+			Notification.sendMail(mailOptions).catch(console.error);
+			// Throw an exception to indicate that OTP verification is needed
+			throw new UnauthorizedException(
+				'Please verify your OTP as you are logging in from a different device.',
+			);
 		} catch (error) {
 			// Log login
-			await this.repository.saveAuthHistory(
-				user.id,
-				req.ip,
-				'LOGIN',
-				req.headers['user-agent'],
-			);
-			// Increment failed login attempts counter on errors
-			await incrementFailedAttempts(user.id, this.repository);
+			// await this.repository.saveAuthHistory(
+			// 	user.id,
+			// 	req.ip,
+			// 	'LOGIN',
+			// 	req.headers['user-agent'],
+			// );
 			throw error; // Rethrow the exception
 		}
 	}
@@ -183,5 +216,17 @@ export class LoginUseCase {
 		hashedPassword: string,
 	): Promise<boolean> {
 		return bcrypt.compare(plainPassword, hashedPassword);
+	}
+
+	/**
+	 * Utility method to add a specified number of minutes to a given date.
+	 *
+	 * @param date - The original date to add minutes to.
+	 * @param minutes - The number of minutes to add.
+	 * @returns Date - The new date with the minutes added.
+	 */
+	private addMinutesToDate(date: Date, minutes: number): Date {
+		const newDate = new Date(date.getTime() + minutes * 60000);
+		return newDate;
 	}
 }

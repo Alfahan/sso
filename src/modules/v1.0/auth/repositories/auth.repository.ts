@@ -1,7 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import * as useragent from 'useragent'; // Library to parse and identify user agent (e.g., browser, OS)
-import * as geoip from 'geoip-lite'; // Library to get geolocation data from IP addresses
 
 /**
  * Repository class for handling authentication-related database operations.
@@ -31,8 +29,46 @@ export class AuthRepository {
 	 * await saveToken('user_tokens', payload);
 	 */
 	async saveToken(table: string, payload: any): Promise<void> {
+		const query = `INSERT INTO ${table} (id, user_id, token, refresh_token, status, ip_origin, geolocation, country, browser, os_type, device) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`;
+		const values = [
+			payload.id,
+			payload.user_id,
+			payload.token,
+			payload.refresh_token,
+			payload.status,
+			payload.ip_origin,
+			payload.geolocation,
+			payload.country,
+			payload.browser,
+			payload.os_type,
+			payload.device,
+		];
+
+		try {
+			// Execute the query to insert the token data into the database
+			await this.dataSource.query(query, values);
+		} catch (error) {
+			// Log any errors that occur during the database query
+			console.error('Error saving token:', error);
+		}
+	}
+
+	async saveTokenUserResetPass(table: string, payload: any): Promise<void> {
 		const query = `INSERT INTO ${table} (user_id, token, status) VALUES ($1, $2, $3)`;
 		const values = [payload.user_id, payload.token, payload.status];
+
+		try {
+			// Execute the query to insert the token data into the database
+			await this.dataSource.query(query, values);
+		} catch (error) {
+			// Log any errors that occur during the database query
+			console.error('Error saving token:', error);
+		}
+	}
+
+	async updateToken(table: string, payload: any, id: string): Promise<void> {
+		const query = `UPDATE ${table} SET token=$1, refresh_token=$2 WHERE id = $3`;
+		const values = [payload.token, payload.refresh_token, id];
 
 		try {
 			// Execute the query to insert the token data into the database
@@ -64,11 +100,12 @@ export class AuthRepository {
 	 * await saveOtp('user_otps', payload);
 	 */
 	async saveOtp(table: string, payload: any): Promise<void> {
-		const query = `INSERT INTO ${table} (user_id, otp_code, otp_expired_at) VALUES ($1, $2, $3)`;
+		const query = `INSERT INTO ${table} (user_id, otp_code, otp_expired_at, status) VALUES ($1, $2, $3, $4)`;
 		const values = [
 			payload.user_id,
 			payload.otp_code,
 			payload.otp_expired_at,
+			payload.status,
 		];
 
 		try {
@@ -80,26 +117,30 @@ export class AuthRepository {
 		}
 	}
 
-	/**
-	 * @method updateTokenStatus
-	 * @description Updates the status of a token in the `user_tokens` table.
-	 *
-	 * @param {string} tableName - The name of the table (e.g., 'user_tokens').
-	 * @param {string} token - The token that needs to be updated.
-	 * @param {string} newStatus - The new status to set for the token (e.g., TOKEN_INVALID).
-	 * @returns {Promise<void>} - Resolves when the token status has been updated.
-	 *
-	 * @example
-	 * await updateTokenStatus('user_tokens', 'someToken', 'INVALID');
-	 */
-	async updateTokenStatus(
-		tableName: string,
-		token: string,
-		newStatus: string,
+	async updateTokenResetPass(
+		table: string,
+		status: string,
+		user_id: string,
 	): Promise<void> {
-		// Assuming your `user_tokens` table has a `token` column and `status` column.
-		const query = `UPDATE ${tableName} SET status = $1 WHERE token = $2`;
-		const values = [newStatus, token];
+		const query = `UPDATE ${table} SET status = $1 WHERE user_id = $2`;
+		const values = [status, user_id];
+
+		try {
+			// Execute the query to insert the token data into the database
+			await this.dataSource.query(query, values);
+		} catch (error) {
+			// Log any errors that occur during the database query
+			console.error('Error saving token:', error);
+		}
+	}
+
+	async updateTokenStatus(
+		table: string,
+		status: string,
+		id: string,
+	): Promise<void> {
+		const query = `UPDATE ${table} SET status = $1 WHERE id = $2`;
+		const values = [status, id];
 
 		try {
 			// Execute the query to insert the token data into the database
@@ -147,17 +188,55 @@ export class AuthRepository {
 	 * @param {any} payload - The payload containing user ID and status.
 	 * @returns {Promise<string | null>} - A promise that resolves to the token if found, or null if not found.
 	 */
-	async cekValidateToken(
+	async cekValidateToken(table: string, payload: any): Promise<any | null> {
+		const query = `SELECT id, token, refresh_token, status FROM ${table} WHERE user_id=$1 AND ip_origin=$2 AND geolocation=$3 AND country=$4 AND browser=$5 AND os_type=$6 AND device=$7 ORDER BY token DESC LIMIT 1`;
+
+		const values = [
+			payload.user_id,
+			payload.ip_origin,
+			payload.geolocation,
+			payload.country,
+			payload.browser,
+			payload.os_type,
+			payload.device,
+		];
+
+		try {
+			// Execute the query to retrieve the latest token
+			const result = await this.dataSource.query(query, values);
+			return result[0];
+		} catch (error) {
+			// Log any errors that occur during the database query
+			console.error('Error retrieving token:', error);
+		}
+	}
+
+	async checkTokenUserResetPassByUserId(
 		table: string,
 		payload: any,
-	): Promise<string | null> {
-		const query = `SELECT token FROM ${table} WHERE user_id=$1 AND status=$2 ORDER BY token DESC LIMIT 1`;
+	): Promise<any | null> {
+		const query = `SELECT id, token, status FROM ${table} WHERE user_id=$1 AND status=$2 ORDER BY token DESC LIMIT 1`;
+
 		const values = [payload.user_id, payload.status];
 
 		try {
 			// Execute the query to retrieve the latest token
 			const result = await this.dataSource.query(query, values);
-			return result[0]?.token || null;
+			return result[0];
+		} catch (error) {
+			// Log any errors that occur during the database query
+			console.error('Error retrieving token:', error);
+		}
+	}
+
+	async checkSessions(table: string, id: string): Promise<any | null> {
+		const query = `SELECT id FROM ${table} WHERE id=$1 LIMIT 1`;
+		const values = [id];
+
+		try {
+			// Execute the query to retrieve the latest token
+			const result = await this.dataSource.query(query, values);
+			return result[0];
 		} catch (error) {
 			// Log any errors that occur during the database query
 			console.error('Error retrieving token:', error);
@@ -259,43 +338,43 @@ export class AuthRepository {
 	 * @param {string} userAgentString - The user agent string from the request.
 	 * @returns {Promise<void>} - A promise that resolves when the activity log is saved.
 	 */
-	async saveAuthHistory(
-		user_id: string,
-		ip: string,
-		action: string,
-		userAgentString: string,
-	): Promise<void> {
-		// Parse the user agent string to extract OS, browser, and device information
-		const agent = useragent.parse(userAgentString);
-		// Lookup the geolocation information from the IP address
-		const geo = geoip.lookup(ip);
+	// async saveAuthHistory(
+	// 	user_id: string,
+	// 	ip: string,
+	// 	action: string,
+	// 	userAgentString: string,
+	// ): Promise<void> {
+	// 	// Parse the user agent string to extract OS, browser, and device information
+	// 	const agent = useragent.parse(userAgentString);
+	// 	// Lookup the geolocation information from the IP address
+	// 	const geo = geoip.lookup(ip);
 
-		// Values for the SQL query
-		const values = [
-			user_id,
-			ip,
-			geo ? `${geo.city}, ${geo.region}, ${geo.country}` : 'Unknown', // Geolocation information or 'Unknown'
-			geo?.country || 'Unknown', // Extracted country information or 'Unknown'
-			agent.toAgent(), // Extracted browser information
-			agent.os.toString(), // Extracted OS information
-			agent.device.toString(), // Extracted device information
-			action, // Action performed (e.g., 'login', 'logout')
-		];
+	// 	// Values for the SQL query
+	// 	const values = [
+	// 		user_id,
+	// 		ip,
+	// 		geo ? `${geo.city}, ${geo.region}, ${geo.country}` : 'Unknown', // Geolocation information or 'Unknown'
+	// 		geo?.country || 'Unknown', // Extracted country information or 'Unknown'
+	// 		agent.toAgent(), // Extracted browser information
+	// 		agent.os.toString(), // Extracted OS information
+	// 		agent.device.toString(), // Extracted device information
+	// 		action, // Action performed (e.g., 'login', 'logout')
+	// 	];
 
-		// SQL query to insert the authentication history into the auth_histories table
-		const query = `
-			INSERT INTO auth_histories (user_id, ip_origin, geolocation, country, browser, os_type, device, action_type)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-		`;
+	// 	// SQL query to insert the authentication history into the auth_histories table
+	// 	const query = `
+	// 		INSERT INTO auth_histories (user_id, ip_origin, geolocation, country, browser, os_type, device, action_type)
+	// 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	// 	`;
 
-		try {
-			// Execute the query to insert the authentication history into the database
-			await this.dataSource.query(query, values);
-		} catch (error) {
-			// Log any errors that occur during the database query
-			console.error('Error saving authentication history:', error);
-		}
-	}
+	// 	try {
+	// 		// Execute the query to insert the authentication history into the database
+	// 		await this.dataSource.query(query, values);
+	// 	} catch (error) {
+	// 		// Log any errors that occur during the database query
+	// 		console.error('Error saving authentication history:', error);
+	// 	}
+	// }
 
 	/**
 	 * Registers a new user by inserting the necessary information into the specified table.
@@ -429,9 +508,13 @@ export class AuthRepository {
 	 * const lastOtp = await findLastOtp('mfa_infos', 'user123');
 	 * console.log('Last OTP:', lastOtp);
 	 */
-	async findLastOtp(table: string, user_id: string): Promise<any> {
-		const query = `SELECT otp_code, otp_expired_at FROM ${table} WHERE user_id=$1 ORDER BY otp_expired_at DESC LIMIT 1`;
-		const values = [user_id];
+	async findLastOtp(
+		table: string,
+		status: string,
+		user_id: string,
+	): Promise<any> {
+		const query = `SELECT id, otp_code, otp_expired_at FROM ${table} WHERE user_id=$1 AND status=$2 ORDER BY otp_expired_at DESC LIMIT 1`;
+		const values = [user_id, status];
 
 		try {
 			// Execute the query to retrieve the last OTP code and expiration timestamp
@@ -440,6 +523,20 @@ export class AuthRepository {
 		} catch (error) {
 			// Log any errors that occur during the database query
 			console.error('Error retrieving last OTP:', error);
+		}
+	}
+
+	async updateOtp(table: string, status: string, id: string): Promise<any> {
+		const query = `UPDATE ${table} SET status = $1 WHERE id = $2`;
+		const values = [status, id];
+
+		try {
+			// Execute the query to retrieve the last OTP code and expiration timestamp
+			const result = await this.dataSource.query(query, values);
+			return result[0] || null; // Return the data if found
+		} catch (error) {
+			// Log any errors that occur during the database query
+			console.error('Error update status:', error);
 		}
 	}
 }
