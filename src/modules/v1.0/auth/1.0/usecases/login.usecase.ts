@@ -23,19 +23,35 @@ import Notification from 'notif-agent-ts';
  */
 @Injectable()
 export class LoginUseCase {
+	/**
+	 * Creates an instance of LoginUseCase.
+	 *
+	 * @param {AuthRepository} repository - Repository for handling authentication data in the database.
+	 * @param {JwtService} jwtService - Service to handle JWT token creation and validation.
+	 */
 	constructor(
 		private readonly repository: AuthRepository, // Repository to handle authentication data in the database
 		private readonly jwtService: JwtService, // Service to handle JWT token creation and validation
 	) {}
 
-	async login(req: Request) {
+	/**
+	 * Handles the login process, including user authentication, rate limiting, and OTP generation.
+	 *
+	 * @param {Request} req - The incoming HTTP request containing user credentials (email and password).
+	 * @returns {Promise<{ access_token: string, refresh_token: string }>} - The access and refresh tokens if authentication is successful.
+	 * @throws {UnauthorizedException} - Throws if the credentials are invalid or if the OTP verification is needed.
+	 * @throws {Error} - Throws if the OTP is already sent and still valid.
+	 */
+	async login(
+		req: Request,
+	): Promise<{ access_token: string; refresh_token: string }> {
 		const { email, password } = req.body;
 		const geo = geoip.lookup(req.ip);
 		const agent = useragent.parse(req.headers['user-agent']);
 
 		let user = null;
 
-		// Find the user by email or phone number
+		// Find the user by email
 		if (email) {
 			user = await this.repository.findByEmail('users', email); // Fetch user by email
 		}
@@ -87,7 +103,6 @@ export class LoginUseCase {
 			);
 
 			if (existingToken) {
-				// try {
 				// Verify the existing token. Throws an error if the token is expired.
 				this.jwtService.verify(existingToken.token, {
 					ignoreExpiration: false,
@@ -114,21 +129,6 @@ export class LoginUseCase {
 					access_token: existingToken.token,
 					refresh_token: existingToken.refresh_token,
 				};
-				// } catch (e) {
-				// 	// If token is expired, disable it and generate a new token
-				// 	if (e.name === 'TokenExpiredError') {
-				// 		// Log login
-				// 		// await this.repository.saveAuthHistory(
-				// 		// 	user.id,
-				// 		// 	req.ip,
-				// 		// 	'LOGIN',
-				// 		// 	req.headers['user-agent'],
-				// 		// );
-				// 		throw new UnauthorizedException('Token Expired');
-				// 	} else {
-				// 		throw e; // For other token-related errors, rethrow the exception
-				// 	}
-				// }
 			}
 
 			// Check if the user already has an active OTP that hasn't expired
@@ -158,7 +158,7 @@ export class LoginUseCase {
 			// Encrypt the OTP using AES-256-CBC encryption
 			const encryptOtp = CryptoTs.encryptWithAes('AES_256_CBC', otpCode);
 
-			// Set the expiration time for the OTP to 5 minutes from now
+			// Set the expiration time for the OTP to 1 minute from now
 			const otpExpired = this.addMinutesToDate(new Date(), 1);
 
 			// Save the encrypted OTP and its expiration time to the database
@@ -173,13 +173,11 @@ export class LoginUseCase {
 				from: 'sso.fabdigital@gmail.com',
 				to: [email],
 				subject: 'OTP Verification',
-
 				templatePath: path.join(
 					process.cwd(),
 					'assets',
 					'otpVerification.html',
 				),
-
 				context: {
 					otpCode: otpCode,
 				},
@@ -207,9 +205,9 @@ export class LoginUseCase {
 	/**
 	 * Validates the given plain password against the hashed password stored in the database.
 	 *
-	 * @param plainPassword - The plain password provided by the user.
-	 * @param hashedPassword - The hashed password stored in the database.
-	 * @returns A boolean indicating whether the password is valid.
+	 * @param {string} plainPassword - The plain password provided by the user.
+	 * @param {string} hashedPassword - The hashed password stored in the database.
+	 * @returns {Promise<boolean>} - A promise that resolves to a boolean indicating whether the password is valid.
 	 */
 	private async isPasswordValid(
 		plainPassword: string,
@@ -221,9 +219,9 @@ export class LoginUseCase {
 	/**
 	 * Utility method to add a specified number of minutes to a given date.
 	 *
-	 * @param date - The original date to add minutes to.
-	 * @param minutes - The number of minutes to add.
-	 * @returns Date - The new date with the minutes added.
+	 * @param {Date} date - The original date to add minutes to.
+	 * @param {number} minutes - The number of minutes to add.
+	 * @returns {Date} - The new date with the minutes added.
 	 */
 	private addMinutesToDate(date: Date, minutes: number): Date {
 		const newDate = new Date(date.getTime() + minutes * 60000);

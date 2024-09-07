@@ -5,7 +5,7 @@ import { Request } from 'express'; // Importing Request from express for type sa
 /**
  * @service ValidateUseCase
  * @description
- * Handles the validation of email and phone number by checking their existence in the repository.
+ * Handles the validation of email, phone number, and username by checking their existence in the repository.
  */
 @Injectable()
 export class ValidateUseCase {
@@ -23,6 +23,9 @@ export class ValidateUseCase {
 	 * @method validateEmail
 	 * @description
 	 * Validates if the provided email exists in the repository.
+	 *
+	 * This method will check if the email is provided and then look up the email in the database.
+	 * If the email is not found or if no email is provided, it throws a BadRequestException.
 	 *
 	 * @param {Request} req - The Express request object containing the email in the request body.
 	 * @returns {Promise<boolean>} - Returns true if the email is found, otherwise false.
@@ -57,6 +60,9 @@ export class ValidateUseCase {
 	 * @method validatePhone
 	 * @description
 	 * Validates if the provided phone number exists in the repository.
+	 *
+	 * This method will check if the phone number is provided and then look up the phone number in the database.
+	 * If the phone number is not found or if no phone number is provided, it throws a BadRequestException.
 	 *
 	 * @param {Request} req - The Express request object containing the phone number in the request body.
 	 * @returns {Promise<boolean>} - Returns true if the phone number is found, otherwise false.
@@ -94,6 +100,9 @@ export class ValidateUseCase {
 	 * @method validateUsername
 	 * @description
 	 * Validates if the provided username exists in the repository.
+	 *
+	 * This method will check if the username is provided and then look up the username in the database.
+	 * If the username is not found or if no username is provided, it throws a BadRequestException.
 	 *
 	 * @param {Request} req - The Express request object containing the username in the request body.
 	 * @returns {Promise<boolean>} - Returns true if the username is found, otherwise false.

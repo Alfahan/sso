@@ -22,10 +22,14 @@ export class LoginPhoneUseCase {
 
 	/**
 	 * Handles the phone login process using OTP and JWT token.
-	 * Validates the OTP, checks for rate limiting, and manages token issuance and authentication history.
+	 * This method performs the following steps:
+	 * 1. Validates the OTP provided by the user.
+	 * 2. Checks for rate limiting to prevent excessive login attempts.
+	 * 3. Manages token issuance, including the generation of new tokens and updating existing tokens.
+	 * 4. Updates the status of the OTP and logs relevant information.
 	 *
-	 * @param {Request} req - The Express request object containing the phone number and OTP in the request body.
-	 * @returns {Promise<{ access_token: string; refresh_token: string | null }>} - Returns a valid JWT access token if login is successful.
+	 * @param {Request} req - The Express request object containing the phone number and OTP code in the request body.
+	 * @returns {Promise<{ access_token: string; refresh_token: string | null }>} - Returns an object containing the JWT access token and refresh token if login is successful.
 	 * @throws {UnauthorizedException} - Throws if the user credentials or OTP are invalid.
 	 * @throws {Error} - Throws if OTP is expired or any other error occurs during the login process.
 	 */
@@ -35,9 +39,11 @@ export class LoginPhoneUseCase {
 		const { phone_number, otp_code } = req.body;
 		let user = null;
 
+		// Retrieve geolocation and user agent data
 		const geo = geoip.lookup(req.ip);
 		const agent = useragent.parse(req.headers['user-agent']);
 
+		// Find the user by phone number
 		if (phone_number) {
 			user = await this.repository.findByPhoneNumber(
 				'users',
@@ -52,6 +58,7 @@ export class LoginPhoneUseCase {
 		// Check rate limiting for user login attempts
 		await checkRateLimit(user.id, this.repository);
 
+		// Find the last valid OTP for the user
 		const lastOtp = await this.repository.findLastOtp(
 			'mfa_infos',
 			TOKEN_VALID,
@@ -62,6 +69,7 @@ export class LoginPhoneUseCase {
 			throw new UnauthorizedException('Invalid credentials');
 		}
 
+		// Decrypt the OTP code
 		const decryptOtp = CryptoTs.decryptWithAes(
 			'AES_256_CBC',
 			Buffer.from(lastOtp.otp_code),
@@ -69,30 +77,20 @@ export class LoginPhoneUseCase {
 
 		const currentTime = new Date();
 
-		if (lastOtp && lastOtp.otp_expired_at < currentTime) {
-			await incrementFailedAttempts(user.id, this.repository); // Increment failed attempts counter if OTP is invalid
-			// await this.repository.saveAuthHistory(
-			// 	user.id,
-			// 	req.ip,
-			// 	'LOGIN',
-			// 	req.headers['user-agent'],
-			// );
+		// Check if OTP has expired
+		if (lastOtp.otp_expired_at < currentTime) {
+			await incrementFailedAttempts(user.id, this.repository); // Increment failed attempts counter if OTP is expired
 			await this.repository.updateOtp(
 				'mfa_infos',
 				TOKEN_INVALID,
 				lastOtp.id,
 			);
-			throw new Error(`OTP Expired.`);
+			throw new Error('OTP Expired.');
 		}
 
+		// Validate the provided OTP code
 		if (otp_code !== decryptOtp) {
 			await incrementFailedAttempts(user.id, this.repository); // Increment failed attempts counter if OTP is invalid
-			// await this.repository.saveAuthHistory(
-			// 	user.id,
-			// 	req.ip,
-			// 	'LOGIN',
-			// 	req.headers['user-agent'],
-			// );
 			throw new UnauthorizedException('Invalid credentials');
 		}
 
@@ -114,28 +112,20 @@ export class LoginPhoneUseCase {
 
 		if (existingToken) {
 			try {
-				// Verify the existing token. Throws an error if the token is expired.
+				// Verify the existing token
 				this.jwtService.verify(existingToken.token, {
 					ignoreExpiration: false,
 				});
 
-				// Log login
-				// await this.repository.saveAuthHistory(
-				// 	user.id,
-				// 	req.ip,
-				// 	'LOGIN',
-				// 	req.headers['user-agent'],
-				// );
-
+				// Reset failed attempts and return the existing token
 				await resetFailedAttempts(user.id, this.repository);
 
-				// Return the valid token
 				return {
 					access_token: existingToken.token,
 					refresh_token: existingToken.refresh_token,
 				};
 			} catch (e) {
-				// 	// If token is expired, disable it and generate a new token
+				// If the token is expired, generate a new token
 				if (e.name === 'TokenExpiredError') {
 					const encryptUuid = CryptoTs.encryptWithAes(
 						'AES_256_CBC',
@@ -167,24 +157,17 @@ export class LoginPhoneUseCase {
 						access_token: newToken,
 						refresh_token: newRefreshToken,
 					};
-					// 		// Log login
-					// 		// await this.repository.saveAuthHistory(
-					// 		// 	user.id,
-					// 		// 	req.ip,
-					// 		// 	'LOGIN',
-					// 		// 	req.headers['user-agent'],
-					// 		// );
-					// 		throw new UnauthorizedException('Token Expired');
 				}
 			}
 		}
 
+		// Generate a new token if no valid token exists
 		const uuid = uuidv4();
 		const encryptUuid = CryptoTs.encryptWithAes('AES_256_CBC', uuid);
-		const payloadToken = { sub: encryptUuid.Value.toString() }; // The payload contains the user id (sub)
+		const payloadToken = { sub: encryptUuid.Value.toString() };
 		const newToken = this.jwtService.sign(payloadToken, {
-			expiresIn: '15m', // Set token expiration time to 2 hours
-		}); // Create a new JWT token
+			expiresIn: '15m', // Set token expiration time to 15 minutes
+		});
 		const encryptId = CryptoTs.encryptWithAes('AES_256_CBC', uuid);
 		const payloadRefToken = { sub: encryptId.Value.toString() };
 		const newRefreshToken = this.jwtService.sign(payloadRefToken);
@@ -208,19 +191,11 @@ export class LoginPhoneUseCase {
 
 		await this.repository.saveToken('user_sessions', tokenData);
 
-		// Log login
-		// await this.repository.saveAuthHistory(
-		//   user.id,
-		//   req.ip,
-		//   'LOGIN',
-		//   req.headers['user-agent'],
-		// );
-
+		// Invalidate the used OTP
 		await this.repository.updateOtp('mfa_infos', TOKEN_INVALID, lastOtp.id);
 
+		// Reset failed attempts counter and return new tokens
 		await resetFailedAttempts(user.id, this.repository);
-
-		// Return the new token to the user
 
 		return {
 			access_token: newToken,

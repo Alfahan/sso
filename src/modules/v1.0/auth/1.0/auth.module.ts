@@ -15,8 +15,8 @@ import { ForgotPasswordUseCase } from './usecases/forgotPassword.usecase'; // Im
 import { ResetPasswordUseCase } from './usecases/resetPassword.usecase'; // Importing the use case for handling password resets
 import { OtpLoginPhoneUseCase } from './usecases/otpLoginPhone.usecase'; // Importing the use case for handling OTP-based phone login
 import { LoginPhoneUseCase } from './usecases/loginPhone.usecase'; // Importing the use case for handling phone-based login
-import { VerificationOtpUseCase } from './usecases/verificationOtp.usercase';
-import { RefreshTokenUseCase } from './usecases/refreshToken.usecase';
+import { VerificationOtpUseCase } from './usecases/verificationOtp.usercase'; // Importing the VerificationOtpUseCase for handling OTP verification
+import { RefreshTokenUseCase } from './usecases/refreshToken.usecase'; // Importing the RefreshTokenUseCase for handling refresh token logic
 
 /**
  * @module AuthModuleV10
@@ -38,7 +38,7 @@ import { RefreshTokenUseCase } from './usecases/refreshToken.usecase';
 	providers: [
 		ValidateUseCase, // Use case for handling validation logic (e.g., email and phone validation)
 		LoginUseCase, // Use case for handling login functionality
-		VerificationOtpUseCase,
+		VerificationOtpUseCase, // Use case for handling OTP verification after sending
 		RefreshTokenUseCase, // Optional: Use case for handling token refreshing if enabled in the future
 		RegisterUseCase, // Use case for handling registration of new users
 		AuthRepository, // Repository for interacting with the authentication data (e.g., users, tokens)

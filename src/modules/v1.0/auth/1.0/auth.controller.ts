@@ -20,7 +20,6 @@ import { OtpLoginPhoneUseCase } from './usecases/otpLoginPhone.usecase';
 import { LoginPhoneUseCase } from './usecases/loginPhone.usecase';
 import { VerificationOtpUseCase } from './usecases/verificationOtp.usercase';
 import { RefreshTokenUseCase } from './usecases/refreshToken.usecase';
-// import { RefreshTokenUseCase } from './usecases/refreshToken.usecase'; // (Optional) Refresh Token Use Case can be added here in the future
 
 /**
  * @class AuthControllerV10
@@ -170,13 +169,21 @@ export class AuthControllerV10 {
 		}
 	}
 
+	/**
+	 * @route POST /auth/verification-otp
+	 * @description Verifies the user's OTP (One-Time Password) to authenticate the user or confirm their identity.
+	 * @param {Response} res - The Express response object used to send the response.
+	 * @param {Request} req - The Express request object containing the OTP and user details in the request body.
+	 * @returns {Promise<Response>} - Returns a success response if the OTP verification is successful, otherwise returns an error response.
+	 * @throws {HttpException} - Throws an internal server error if the OTP verification process encounters an error.
+	 */
 	@Post('/verification-otp')
 	async verification(
 		@Res() res: Response, // Injecting the Express response object
 		@Req() req: Request, // Injecting the Express request object
 	): Promise<Response> {
 		try {
-			const data = await this.verificationOtpUseCase.verification(req); // Calling login logic
+			const data = await this.verificationOtpUseCase.verification(req); // Calling OTP verification logic
 			return ApiResponse.success(res, data, successCode.SCDTDT0001); // Returning success response
 		} catch (error) {
 			if (error instanceof Error) {
@@ -185,7 +192,7 @@ export class AuthControllerV10 {
 					error.message,
 					errorCode.ERDTTD0001,
 					error.stack,
-				); // Handling login error
+				); // Handling OTP verification error
 			}
 			throw new HttpException(
 				error.message,
@@ -194,14 +201,22 @@ export class AuthControllerV10 {
 		}
 	}
 
+	/**
+	 * @route POST /auth/refresh-token/:refresh_token
+	 * @description Refreshes the user's authentication token using a valid refresh token.
+	 * @param {Response} res - The Express response object used to send the response.
+	 * @param {Request} req - The Express request object containing the refresh token in the URL parameters.
+	 * @returns {Promise<Response>} - Returns a new authentication token if the refresh token is valid, otherwise returns an error response.
+	 * @throws {HttpException} - Throws an internal server error if the token refresh process encounters an error.
+	 */
 	@Post('/refresh-token/:refresh_token')
 	async refreshToken(
 		@Res() res: Response,
 		@Req() req: Request,
 	): Promise<Response> {
 		try {
-			const data = await this.refreshTokenUseCase.refreshToken(req);
-			return ApiResponse.success(res, data, successCode.SCDTDT0001);
+			const data = await this.refreshTokenUseCase.refreshToken(req); // Calling refresh token logic
+			return ApiResponse.success(res, data, successCode.SCDTDT0001); // Returning success response
 		} catch (error) {
 			if (error instanceof Error) {
 				return ApiResponse.fail(
@@ -209,7 +224,7 @@ export class AuthControllerV10 {
 					error.message,
 					errorCode.ERDTTD0001,
 					error.stack,
-				); // Handling login error
+				); // Handling token refresh error
 			}
 			throw new HttpException(
 				error.message,

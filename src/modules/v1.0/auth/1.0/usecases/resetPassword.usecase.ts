@@ -6,6 +6,11 @@ import CryptoTs from 'pii-agent-ts';
 import * as bcrypt from 'bcrypt'; // Importing bcrypt for hashing the password
 import { TOKEN_INVALID, TOKEN_VALID } from '@app/const';
 
+/**
+ * @service ResetPasswordUseCase
+ * @description
+ * Handles the password reset process by verifying the reset token, validating the new password, and updating the user's password in the database.
+ */
 @Injectable()
 export class ResetPasswordUseCase {
 	constructor(
@@ -14,11 +19,26 @@ export class ResetPasswordUseCase {
 	) {}
 
 	/**
-	 * Resets the user's password.
+	 * @method resetPassword
+	 * @description
+	 * Resets the user's password using a provided reset token and new password. The process includes:
+	 * 1. Verifying the JWT reset token to ensure it is valid and not expired.
+	 * 2. Decrypting the user ID from the token.
+	 * 3. Checking if the user has a valid reset password token.
+	 * 4. Hashing the new password using bcrypt.
+	 * 5. Updating the user's password in the database.
+	 * 6. Invalidating the used reset password token.
 	 *
-	 * @param {Request} req - The HTTP request object containing token and new password.
-	 * @returns {Promise<any>} - A promise that resolves to the result of the password reset.
-	 * @throws {UnauthorizedException} - If the token is invalid, expired, or the user is not found.
+	 * @param {Request} req - The HTTP request object containing the reset token in the URL parameters and the new password in the request body.
+	 * @returns {Promise<any>} - Returns the result of the password reset operation, typically an acknowledgment of the update.
+	 * @throws {UnauthorizedException} - Throws an exception if the token is invalid, expired, or if the user is not found in the database.
+	 *
+	 * @example
+	 * const result = await resetPasswordUseCase.resetPassword({
+	 *   params: { token: 'valid-reset-token' },
+	 *   body: { new_password: 'newSecurePassword123' },
+	 * });
+	 * // result will contain the acknowledgment of the password reset operation
 	 */
 	async resetPassword(req: Request): Promise<any> {
 		const { token } = req.params;

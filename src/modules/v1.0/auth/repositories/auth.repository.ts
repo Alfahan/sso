@@ -53,6 +53,25 @@ export class AuthRepository {
 		}
 	}
 
+	/**
+	 * Saves a token for a user's password reset request into the specified table.
+	 * @param {string} table - The name of the table to insert the token into.
+	 * @param {object} payload - The token data to be inserted.
+	 * @param {string} payload.user_id - The ID of the user requesting the password reset.
+	 * @param {string} payload.token - The reset token to be saved.
+	 * @param {string} payload.status - The status of the token (e.g., 'active', 'expired').
+	 * @returns {Promise<void>} - A promise that resolves when the token has been successfully saved.
+	 *
+	 * @throws Will log an error if the database query fails.
+	 *
+	 * @example
+	 * const payload = {
+	 *   user_id: '12345',
+	 *   token: 'reset-token-example',
+	 *   status: 'active'
+	 * };
+	 * await saveTokenUserResetPass('user_reset_tokens', payload);
+	 */
 	async saveTokenUserResetPass(table: string, payload: any): Promise<void> {
 		const query = `INSERT INTO ${table} (user_id, token, status) VALUES ($1, $2, $3)`;
 		const values = [payload.user_id, payload.token, payload.status];
@@ -66,16 +85,35 @@ export class AuthRepository {
 		}
 	}
 
+	/**
+	 * Updates an existing token in the specified table based on the provided ID.
+	 * @param {string} table - The name of the table to update the token in.
+	 * @param {object} payload - The updated token data.
+	 * @param {string} payload.token - The new token value.
+	 * @param {string} payload.refresh_token - The new refresh token value.
+	 * @param {string} id - The ID of the record to update.
+	 * @returns {Promise<void>} - A promise that resolves when the token has been successfully updated.
+	 *
+	 * @throws Will log an error if the database query fails.
+	 *
+	 * @example
+	 * const payload = {
+	 *   token: 'new-token-value',
+	 *   refresh_token: 'new-refresh-token-value'
+	 * };
+	 * const id = 'existing-record-id';
+	 * await updateToken('user_tokens', payload, id);
+	 */
 	async updateToken(table: string, payload: any, id: string): Promise<void> {
 		const query = `UPDATE ${table} SET token=$1, refresh_token=$2 WHERE id = $3`;
 		const values = [payload.token, payload.refresh_token, id];
 
 		try {
-			// Execute the query to insert the token data into the database
+			// Execute the query to update the token data in the database
 			await this.dataSource.query(query, values);
 		} catch (error) {
 			// Log any errors that occur during the database query
-			console.error('Error saving token:', error);
+			console.error('Error updating token:', error);
 		}
 	}
 
@@ -117,6 +155,20 @@ export class AuthRepository {
 		}
 	}
 
+	/**
+	 * Updates the status of a reset token for a specific user in the specified table.
+	 * @param {string} table - The name of the table where the token status should be updated.
+	 * @param {string} status - The new status of the token (e.g., 'active', 'expired').
+	 * @param {string} user_id - The ID of the user whose token status is being updated.
+	 * @returns {Promise<void>} - A promise that resolves when the status has been successfully updated.
+	 *
+	 * @throws Will log an error if the database query fails.
+	 *
+	 * @example
+	 * const status = 'expired';
+	 * const user_id = '12345';
+	 * await updateTokenResetPass('user_reset_tokens', status, user_id);
+	 */
 	async updateTokenResetPass(
 		table: string,
 		status: string,
@@ -126,14 +178,28 @@ export class AuthRepository {
 		const values = [status, user_id];
 
 		try {
-			// Execute the query to insert the token data into the database
+			// Execute the query to update the token status in the database
 			await this.dataSource.query(query, values);
 		} catch (error) {
 			// Log any errors that occur during the database query
-			console.error('Error saving token:', error);
+			console.error('Error updating token status:', error);
 		}
 	}
 
+	/**
+	 * Updates the status of a token based on its ID in the specified table.
+	 * @param {string} table - The name of the table where the token status should be updated.
+	 * @param {string} status - The new status of the token (e.g., 'active', 'expired').
+	 * @param {string} id - The ID of the token record to be updated.
+	 * @returns {Promise<void>} - A promise that resolves when the status has been successfully updated.
+	 *
+	 * @throws Will log an error if the database query fails.
+	 *
+	 * @example
+	 * const status = 'inactive';
+	 * const id = 'existing-token-id';
+	 * await updateTokenStatus('user_tokens', status, id);
+	 */
 	async updateTokenStatus(
 		table: string,
 		status: string,
@@ -143,11 +209,11 @@ export class AuthRepository {
 		const values = [status, id];
 
 		try {
-			// Execute the query to insert the token data into the database
+			// Execute the query to update the token status in the database
 			await this.dataSource.query(query, values);
 		} catch (error) {
 			// Log any errors that occur during the database query
-			console.error('Error saving token:', error);
+			console.error('Error updating token status:', error);
 		}
 	}
 
@@ -211,6 +277,21 @@ export class AuthRepository {
 		}
 	}
 
+	/**
+	 * Checks for the most recent reset token for a specific user with the given status in the specified table.
+	 * @param {string} table - The name of the table where the token information is stored.
+	 * @param {object} payload - An object containing the `user_id` and `status` to filter the token.
+	 * @param {string} payload.user_id - The ID of the user whose token is being queried.
+	 * @param {string} payload.status - The status of the token to filter by (e.g., 'active').
+	 * @returns {Promise<any | null>} - A promise that resolves to the most recent token record or `null` if no matching token is found.
+	 *
+	 * @throws Will log an error if the database query fails.
+	 *
+	 * @example
+	 * const payload = { user_id: '12345', status: 'active' };
+	 * const token = await checkTokenUserResetPassByUserId('user_reset_tokens', payload);
+	 * console.log(token);
+	 */
 	async checkTokenUserResetPassByUserId(
 		table: string,
 		payload: any,
@@ -229,17 +310,30 @@ export class AuthRepository {
 		}
 	}
 
+	/**
+	 * Checks if a session with a given ID exists in the specified table.
+	 * @param {string} table - The name of the table where session information is stored.
+	 * @param {string} id - The ID of the session to check for existence.
+	 * @returns {Promise<any | null>} - A promise that resolves to the session record if found, or `null` if no matching session is found.
+	 *
+	 * @throws Will log an error if the database query fails.
+	 *
+	 * @example
+	 * const id = 'session-id-123';
+	 * const session = await checkSessions('sessions_table', id);
+	 * console.log(session);
+	 */
 	async checkSessions(table: string, id: string): Promise<any | null> {
 		const query = `SELECT id FROM ${table} WHERE id=$1 LIMIT 1`;
 		const values = [id];
 
 		try {
-			// Execute the query to retrieve the latest token
+			// Execute the query to retrieve the session record
 			const result = await this.dataSource.query(query, values);
 			return result[0];
 		} catch (error) {
 			// Log any errors that occur during the database query
-			console.error('Error retrieving token:', error);
+			console.error('Error retrieving session:', error);
 		}
 	}
 
@@ -300,8 +394,14 @@ export class AuthRepository {
 	/**
 	 * Finds a user by email in the specified table.
 	 * @param {string} table - The name of the table to query.
-	 * @param {string} email - The email of the user.
-	 * @returns {Promise<string | null>} - A promise that resolves to the user data if found, or null if not found.
+	 * @param {string} email - The email of the user to find.
+	 * @returns {Promise<any | null>} - A promise that resolves to the user data if found, or `null` if not found.
+	 *
+	 * @throws Will log an error if the database query fails.
+	 *
+	 * @example
+	 * const user = await findByEmail('users', 'user@example.com');
+	 * console.log(user);
 	 */
 	async findByEmail(table: string, email: string): Promise<any | null> {
 		const query = `SELECT id, password FROM ${table} WHERE email=$1 LIMIT 1`;
@@ -317,11 +417,24 @@ export class AuthRepository {
 		}
 	}
 
+	/**
+	 * Finds a user by ID in the specified table.
+	 * @param {string} table - The name of the table to query.
+	 * @param {string} id - The ID of the user to find.
+	 * @returns {Promise<any | null>} - A promise that resolves to the user data if found, or `null` if not found.
+	 *
+	 * @throws Will log an error if the database query fails.
+	 *
+	 * @example
+	 * const user = await findById('users', 'user-id-123');
+	 * console.log(user);
+	 */
 	async findById(table: string, id: string): Promise<any | null> {
 		const query = `SELECT id, password FROM ${table} WHERE id=$1 LIMIT 1`;
 		const value = [id];
+
 		try {
-			// Execute the query to retrieve the user by email
+			// Execute the query to retrieve the user by ID
 			const result = await this.dataSource.query(query, value);
 			return result[0] || null; // Return the user data if found
 		} catch (error) {
@@ -526,17 +639,30 @@ export class AuthRepository {
 		}
 	}
 
+	/**
+	 * Updates the status of an OTP (One-Time Password) entry in the specified table.
+	 * @param {string} table - The name of the table where the OTP information is stored.
+	 * @param {string} status - The new status to set for the OTP entry.
+	 * @param {string} id - The ID of the OTP entry to update.
+	 * @returns {Promise<any>} - A promise that resolves to the result of the update operation. Returns the updated record if found, or `null` if no matching record is found.
+	 *
+	 * @throws Will log an error if the database query fails.
+	 *
+	 * @example
+	 * const updatedOtp = await updateOtp('otp_table', 'used', 'otp-id-123');
+	 * console.log(updatedOtp);
+	 */
 	async updateOtp(table: string, status: string, id: string): Promise<any> {
 		const query = `UPDATE ${table} SET status = $1 WHERE id = $2`;
 		const values = [status, id];
 
 		try {
-			// Execute the query to retrieve the last OTP code and expiration timestamp
+			// Execute the query to update the OTP status in the database
 			const result = await this.dataSource.query(query, values);
 			return result[0] || null; // Return the data if found
 		} catch (error) {
 			// Log any errors that occur during the database query
-			console.error('Error update status:', error);
+			console.error('Error updating status:', error);
 		}
 	}
 }

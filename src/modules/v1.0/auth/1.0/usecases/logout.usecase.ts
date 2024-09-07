@@ -62,7 +62,7 @@ export class LogoutUseCase {
 			Buffer.from(payload.sub),
 		); // Extract the user ID (subject) from the token payload
 		try {
-			// Invalidate the token by updating its status to TOKEN_INVALID in the database
+			// Invalidate the token by updating its status to LOGGED_OUT in the database
 			await this.repository.updateTokenStatus(
 				'user_sessions',
 				LOGGED_OUT, // (logged out)
