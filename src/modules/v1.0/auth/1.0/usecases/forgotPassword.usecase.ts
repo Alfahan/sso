@@ -94,6 +94,7 @@ export class ForgotPasswordUseCase {
 			token: newToken,
 			status: TOKEN_VALID,
 		};
+
 		await this.repository.saveTokenUserResetPass(
 			'user_reset_passwords',
 			tokenData,

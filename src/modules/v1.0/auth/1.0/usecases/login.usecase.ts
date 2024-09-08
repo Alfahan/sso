@@ -2,7 +2,6 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthRepository } from '../../repositories/auth.repository'; // Repository for database access related to authentication
 import { JwtService } from '@nestjs/jwt'; // Service for handling JWT token creation and verification
 import { Request } from 'express'; // Express request type for handling HTTP requests
-import * as bcrypt from 'bcrypt'; // bcrypt library for hashing and comparing passwords
 import {
 	checkRateLimit,
 	incrementFailedAttempts,
@@ -12,9 +11,7 @@ import { LOGGED_IN, TOKEN_VALID } from '@app/const'; // Constants for token stat
 import CryptoTs from 'pii-agent-ts';
 import * as useragent from 'useragent'; // Library to parse and identify user agent (e.g., browser, OS)
 import * as geoip from 'geoip-lite'; // Library to get geolocation data from IP addresses
-import * as path from 'path';
-import Notification from 'notif-agent-ts';
-// import { checkAnomalous } from '@app/middlewares/checkAnomalous.middleware';
+import { AuthHelper } from '../auth.helper';
 
 /**
  * The `LoginUseCase` class provides a service for handling user authentication.
@@ -30,6 +27,7 @@ export class LoginUseCase {
 	 * @param {JwtService} jwtService - Service to handle JWT token creation and validation.
 	 */
 	constructor(
+		private readonly helper: AuthHelper,
 		private readonly repository: AuthRepository, // Repository to handle authentication data in the database
 		private readonly jwtService: JwtService, // Service to handle JWT token creation and validation
 	) {}
@@ -64,11 +62,8 @@ export class LoginUseCase {
 		// Check rate limiting for user login attempts
 		await checkRateLimit(user.id, this.repository);
 
-		// Check for suspicious login patterns or behavior
-		// await checkAnomalous(req, user.id, this.repository);
-
 		// Validate the user's password
-		const isValidPassword = await this.isPasswordValid(
+		const isValidPassword = await this.helper.isPasswordValid(
 			password,
 			user.password,
 		);
@@ -76,12 +71,18 @@ export class LoginUseCase {
 		if (!isValidPassword) {
 			await incrementFailedAttempts(user.id, this.repository); // Increment failed attempts counter if password is invalid
 			// Log login
-			// await this.repository.saveAuthHistory(
-			// 	user.id,
-			// 	req.ip,
-			// 	'LOGIN',
-			// 	req.headers['user-agent'],
-			// );
+			await this.repository.saveAuthHistory('auth_histories', {
+				user_id: user.id,
+				ip_origin: req.ip,
+				geolocation: geo
+					? `${geo.city}, ${geo.region}, ${geo.country}`
+					: 'Unknown',
+				country: geo?.country || 'Unknown',
+				browser: agent.toAgent(),
+				os_type: agent.os.toString(),
+				device: agent.device.toString(),
+				action: 'LOGIN',
+			});
 			throw new UnauthorizedException('Invalid credentials');
 		}
 
@@ -105,16 +106,22 @@ export class LoginUseCase {
 			if (existingToken) {
 				// Verify the existing token. Throws an error if the token is expired.
 				this.jwtService.verify(existingToken.token, {
-					ignoreExpiration: false,
+					ignoreExpiration: true,
 				});
 
 				// Log login
-				// await this.repository.saveAuthHistory(
-				// 	user.id,
-				// 	req.ip,
-				// 	'LOGIN',
-				// 	req.headers['user-agent'],
-				// );
+				await this.repository.saveAuthHistory('auth_histories', {
+					user_id: user.id,
+					ip_origin: req.ip,
+					geolocation: geo
+						? `${geo.city}, ${geo.region}, ${geo.country}`
+						: 'Unknown',
+					country: geo?.country || 'Unknown',
+					browser: agent.toAgent(),
+					os_type: agent.os.toString(),
+					device: agent.device.toString(),
+					action: 'LOGIN',
+				});
 
 				await resetFailedAttempts(user.id, this.repository);
 
@@ -159,7 +166,7 @@ export class LoginUseCase {
 			const encryptOtp = CryptoTs.encryptWithAes('AES_256_CBC', otpCode);
 
 			// Set the expiration time for the OTP to 1 minute from now
-			const otpExpired = this.addMinutesToDate(new Date(), 1);
+			const otpExpired = this.helper.addMinutesToDate(new Date(), 1);
 
 			// Save the encrypted OTP and its expiration time to the database
 			await this.repository.saveOtp('mfa_infos', {
@@ -169,62 +176,29 @@ export class LoginUseCase {
 				status: TOKEN_VALID,
 			});
 
-			const mailOptions = {
-				from: 'sso.fabdigital@gmail.com',
-				to: [email],
-				subject: 'OTP Verification',
-				templatePath: path.join(
-					process.cwd(),
-					'assets',
-					'otpVerification.html',
-				),
-				context: {
-					otpCode: otpCode,
-				},
-			};
+			this.helper.sendOtpVerification(email, otpCode);
 
 			await resetFailedAttempts(user.id, this.repository);
 
-			Notification.sendMail(mailOptions).catch(console.error);
 			// Throw an exception to indicate that OTP verification is needed
 			throw new UnauthorizedException(
 				'Please verify your OTP as you are logging in from a different device.',
 			);
 		} catch (error) {
 			// Log login
-			// await this.repository.saveAuthHistory(
-			// 	user.id,
-			// 	req.ip,
-			// 	'LOGIN',
-			// 	req.headers['user-agent'],
-			// );
+			await this.repository.saveAuthHistory('auth_histories', {
+				user_id: user.id,
+				ip_origin: req.ip,
+				geolocation: geo
+					? `${geo.city}, ${geo.region}, ${geo.country}`
+					: 'Unknown',
+				country: geo?.country || 'Unknown',
+				browser: agent.toAgent(),
+				os_type: agent.os.toString(),
+				device: agent.device.toString(),
+				action: 'LOGIN',
+			});
 			throw error; // Rethrow the exception
 		}
-	}
-
-	/**
-	 * Validates the given plain password against the hashed password stored in the database.
-	 *
-	 * @param {string} plainPassword - The plain password provided by the user.
-	 * @param {string} hashedPassword - The hashed password stored in the database.
-	 * @returns {Promise<boolean>} - A promise that resolves to a boolean indicating whether the password is valid.
-	 */
-	private async isPasswordValid(
-		plainPassword: string,
-		hashedPassword: string,
-	): Promise<boolean> {
-		return bcrypt.compare(plainPassword, hashedPassword);
-	}
-
-	/**
-	 * Utility method to add a specified number of minutes to a given date.
-	 *
-	 * @param {Date} date - The original date to add minutes to.
-	 * @param {number} minutes - The number of minutes to add.
-	 * @returns {Date} - The new date with the minutes added.
-	 */
-	private addMinutesToDate(date: Date, minutes: number): Date {
-		const newDate = new Date(date.getTime() + minutes * 60000);
-		return newDate;
 	}
 }

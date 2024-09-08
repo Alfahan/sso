@@ -3,6 +3,8 @@ import { config } from 'dotenv';
 // Load environment variables from a .env file into process.env
 config();
 
+export const NODE_ENV = process.env.NODE_ENV;
+
 // Application name, usually used for logging or application identification
 export const APP_NAME = process.env.APP_NAME;
 

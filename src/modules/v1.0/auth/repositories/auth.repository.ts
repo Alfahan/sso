@@ -451,43 +451,32 @@ export class AuthRepository {
 	 * @param {string} userAgentString - The user agent string from the request.
 	 * @returns {Promise<void>} - A promise that resolves when the activity log is saved.
 	 */
-	// async saveAuthHistory(
-	// 	user_id: string,
-	// 	ip: string,
-	// 	action: string,
-	// 	userAgentString: string,
-	// ): Promise<void> {
-	// 	// Parse the user agent string to extract OS, browser, and device information
-	// 	const agent = useragent.parse(userAgentString);
-	// 	// Lookup the geolocation information from the IP address
-	// 	const geo = geoip.lookup(ip);
+	async saveAuthHistory(table: string, payload: any): Promise<void> {
+		// SQL query to insert the authentication history into the auth_histories table
+		const query = `
+			INSERT INTO auth_histories (user_id, ip_origin, geolocation, country, browser, os_type, device, action_type)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		`;
+		// Values for the SQL query
+		const values = [
+			payload.user_id,
+			payload.ip_origin,
+			payload.geolocation,
+			payload.country,
+			payload.browser,
+			payload.os_type,
+			payload.device,
+			payload.action,
+		];
 
-	// 	// Values for the SQL query
-	// 	const values = [
-	// 		user_id,
-	// 		ip,
-	// 		geo ? `${geo.city}, ${geo.region}, ${geo.country}` : 'Unknown', // Geolocation information or 'Unknown'
-	// 		geo?.country || 'Unknown', // Extracted country information or 'Unknown'
-	// 		agent.toAgent(), // Extracted browser information
-	// 		agent.os.toString(), // Extracted OS information
-	// 		agent.device.toString(), // Extracted device information
-	// 		action, // Action performed (e.g., 'login', 'logout')
-	// 	];
-
-	// 	// SQL query to insert the authentication history into the auth_histories table
-	// 	const query = `
-	// 		INSERT INTO auth_histories (user_id, ip_origin, geolocation, country, browser, os_type, device, action_type)
-	// 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-	// 	`;
-
-	// 	try {
-	// 		// Execute the query to insert the authentication history into the database
-	// 		await this.dataSource.query(query, values);
-	// 	} catch (error) {
-	// 		// Log any errors that occur during the database query
-	// 		console.error('Error saving authentication history:', error);
-	// 	}
-	// }
+		try {
+			// Execute the query to insert the authentication history into the database
+			await this.dataSource.query(query, values);
+		} catch (error) {
+			// Log any errors that occur during the database query
+			console.error('Error saving authentication history:', error);
+		}
+	}
 
 	/**
 	 * Registers a new user by inserting the necessary information into the specified table.

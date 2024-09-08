@@ -170,7 +170,9 @@ export class LoginPhoneUseCase {
 		});
 		const encryptId = CryptoTs.encryptWithAes('AES_256_CBC', uuid);
 		const payloadRefToken = { sub: encryptId.Value.toString() };
-		const newRefreshToken = this.jwtService.sign(payloadRefToken);
+		const newRefreshToken = this.jwtService.sign(payloadRefToken, {
+			expiresIn: '7d', // Set token expiration time to 7 days
+		});
 
 		// Save the new token in the database
 		const tokenData = {

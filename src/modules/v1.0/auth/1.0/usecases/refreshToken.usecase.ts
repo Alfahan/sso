@@ -45,7 +45,7 @@ export class RefreshTokenUseCase {
 
 		// Verify the refresh token without checking expiration
 		const jwt = this.jwtService.verify(refresh_token, {
-			ignoreExpiration: true,
+			ignoreExpiration: false,
 		});
 
 		// Decrypt the user session ID from the JWT payload

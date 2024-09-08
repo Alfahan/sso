@@ -2,7 +2,8 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { AuthRepository } from '../../repositories/auth.repository'; // Importing the AuthRepository
 import * as bcrypt from 'bcrypt'; // Importing bcrypt for hashing the password
 import { Request } from 'express'; // Importing Request from express for type safety
-import { USER_ACTIVE } from '@app/const'; // Importing user status constant
+import { NODE_ENV, USER_ACTIVE } from '@app/const'; // Importing user status constant
+import { AuthHelper } from '../auth.helper';
 
 /**
  * @service RegisterUseCase
@@ -11,16 +12,10 @@ import { USER_ACTIVE } from '@app/const'; // Importing user status constant
  */
 @Injectable()
 export class RegisterUseCase {
-	// Injecting AuthRepository for interacting with the database
-	private readonly repository: AuthRepository;
-
-	/**
-	 * @constructor
-	 * @param {AuthRepository} repository - The repository instance used for database interactions.
-	 */
-	constructor(repository: AuthRepository) {
-		this.repository = repository;
-	}
+	constructor(
+		private readonly repository: AuthRepository,
+		private readonly helper: AuthHelper,
+	) {}
 
 	/**
 	 * @method register
@@ -44,6 +39,11 @@ export class RegisterUseCase {
 	 */
 	async register(req: Request) {
 		const { username, email, phone_number, password } = req.body;
+
+		if (NODE_ENV === 'PRODUCTION') {
+			// Validate the email domain before proceeding
+			this.helper.validateDomain(email);
+		}
 
 		let find: any = null; // Variable to hold the result of database lookups
 
