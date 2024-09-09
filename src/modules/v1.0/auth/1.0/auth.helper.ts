@@ -77,6 +77,28 @@ export class AuthHelper {
 		Notification.sendMail(mailOptions).catch(console.error);
 	}
 
+	sendNewLoginAlert(payload: any): void {
+		const mailOptions = {
+			from: 'sso.fabdigital@gmail.com',
+			to: [payload.email],
+			subject: 'New Device Login',
+			templatePath: path.join(
+				process.cwd(),
+				'assets',
+				'newDeviceLoginAlert.html',
+			),
+			context: {
+				browser: payload.browser,
+				device: payload.device,
+				geolocation: payload.geolocation,
+				country: payload.country,
+				date: new Date(),
+			},
+		};
+
+		Notification.sendMail(mailOptions).catch(console.error);
+	}
+
 	/**
 	 * Sends the OTP code to the user via a messaging service.
 	 *

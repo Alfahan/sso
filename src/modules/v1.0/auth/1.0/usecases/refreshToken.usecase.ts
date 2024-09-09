@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthRepository } from '../../repositories/auth.repository';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
@@ -60,40 +60,46 @@ export class RefreshTokenUseCase {
 			user_session_id,
 		);
 
-		// Encrypt the session ID for the new access token payload
-		const encryptUuid = CryptoTs.encryptWithAes(
-			'AES_256_CBC',
-			existingSession.id,
-		);
+		if (existingSession) {
+			// Encrypt the session ID for the new access token payload
+			const encryptUuid = CryptoTs.encryptWithAes(
+				'AES_256_CBC',
+				existingSession.id,
+			);
 
-		// Generate a new access token
-		const payloadToken = { sub: encryptUuid.Value.toString() };
-		const newToken = this.jwtService.sign(payloadToken, {
-			expiresIn: '2h', // Set token expiration time to 2 hours
-		});
+			// Generate a new access token
+			const payloadToken = { sub: encryptUuid.Value.toString() };
+			const newToken = this.jwtService.sign(payloadToken, {
+				expiresIn: '2h', // Set token expiration time to 2 hours
+			});
 
-		// Encrypt the session ID for the new refresh token payload
-		const encryptId = CryptoTs.encryptWithAes(
-			'AES_256_CBC',
-			existingSession.id,
-		);
-		const payloadRefToken = { sub: encryptId.Value.toString() };
-		const newRefreshToken = this.jwtService.sign(payloadRefToken);
+			// Encrypt the session ID for the new refresh token payload
+			const encryptId = CryptoTs.encryptWithAes(
+				'AES_256_CBC',
+				existingSession.id,
+			);
+			const payloadRefToken = { sub: encryptId.Value.toString() };
+			const newRefreshToken = this.jwtService.sign(payloadRefToken, {
+				expiresIn: '7d', // Set token expiration time to 7 days
+			});
 
-		// Update the session in the database with the new tokens
-		await this.repository.updateToken(
-			'user_sessions',
-			{
-				token: newToken,
+			// Update the session in the database with the new tokens
+			await this.repository.updateToken(
+				'user_sessions',
+				{
+					token: newToken,
+					refresh_token: newRefreshToken,
+				},
+				existingSession.id,
+			);
+
+			// Return the new access and refresh tokens
+			return {
+				access_token: newToken,
 				refresh_token: newRefreshToken,
-			},
-			existingSession.id,
-		);
+			};
+		}
 
-		// Return the new access and refresh tokens
-		return {
-			access_token: newToken,
-			refresh_token: newRefreshToken,
-		};
+		throw new UnauthorizedException('Invalid credentials');
 	}
 }

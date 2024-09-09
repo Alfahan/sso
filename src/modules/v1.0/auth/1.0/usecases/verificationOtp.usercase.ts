@@ -12,6 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { LOGGED_IN, TOKEN_INVALID, TOKEN_VALID } from '@app/const';
 import * as geoip from 'geoip-lite'; // Library to get geolocation data
 import * as useragent from 'useragent'; // Library to parse and identify user agent (e.g., browser, OS)
+import { AuthHelper } from '../auth.helper';
 
 /**
  * @service VerificationOtpUseCase
@@ -21,6 +22,7 @@ import * as useragent from 'useragent'; // Library to parse and identify user ag
 @Injectable()
 export class VerificationOtpUseCase {
 	constructor(
+		private readonly helper: AuthHelper,
 		private readonly repository: AuthRepository,
 		private readonly jwtService: JwtService, // Service to handle JWT token creation and validation
 	) {}
@@ -141,6 +143,16 @@ export class VerificationOtpUseCase {
 
 		// Reset failed attempts counter
 		await resetFailedAttempts(user.id, this.repository);
+
+		this.helper.sendNewLoginAlert({
+			email: email,
+			browser: agent.toAgent(),
+			device: agent.device.toString(),
+			geolocation: geo
+				? `${geo.city}, ${geo.region}, ${geo.country}`
+				: 'Unknown',
+			country: geo?.country || 'Unknown',
+		});
 
 		// Return the new tokens
 		return {
