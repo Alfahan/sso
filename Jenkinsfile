@@ -26,12 +26,12 @@ PipelineDockerEntryV2([
     // Service Test
     // Pada bagian ini anda dapat menambahkan dan mengkonfigurasikan script untuk menjalankan test pada service yang anda buat
     testAgent: 'Docker',
-    testAgentImage: 'playcourt/jenkins:nodejs20', // Untuk option ini, hanya gunakan image dari https://hub.docker.com/r/playcourt/jenkins
+    testAgentImage: 'playcourt/jenkins:nodejs18', // Untuk option ini, hanya gunakan image dari https://hub.docker.com/r/playcourt/jenkins
     runTestScript: {
         // "runTestScript" berisi groovy script untuk menjalankan test
         // contoh script untuk menjalankan test pada service nodejs
-        // sh "npm ci"
-        // sh "npm run test"
+        sh "npm install"
+        sh "npm run test"
     },
 
     // Build Docker Image
