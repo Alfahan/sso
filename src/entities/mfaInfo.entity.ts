@@ -8,9 +8,11 @@ import {
 	CreateDateColumn,
 } from 'typeorm';
 import { User } from './user.entity';
+import { ApiKey } from './apiKey.entity';
 
 @Entity('mfa_infos')
 @Index('idx-mfa-infos-user_id', ['user_id'])
+@Index('idx-mfa-infos-api_key_id', ['api_key_id'])
 @Index('idx-mfa-infos-otp_code', ['otp_code'])
 @Index('idx-mfa-infos-status', ['status'])
 export class MfaInfo {
@@ -18,8 +20,12 @@ export class MfaInfo {
 	id: string;
 
 	@ManyToOne(() => User, (user) => user.mfa_infos)
-	@JoinColumn({ name: 'user_id' }) // Customizes the foreign key column name
-	user_id: User; // Relationship reference to the User entity
+	@JoinColumn({ name: 'user_id' })
+	user_id: User;
+
+	@ManyToOne(() => ApiKey, (apikey) => apikey.user_sessions)
+	@JoinColumn({ name: 'api_key_id' })
+	api_key_id: string;
 
 	@Column({ nullable: true })
 	otp_code: string;
@@ -32,7 +38,7 @@ export class MfaInfo {
 		default: () => 'CURRENT_TIMESTAMP',
 	})
 	@CreateDateColumn()
-	otp_expired_at?: Date;
+	expires_at?: Date;
 
 	@Column({
 		type: 'timestamp without time zone',

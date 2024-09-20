@@ -25,14 +25,14 @@ export class RevokeApiKeyUseCase {
 	 *
 	 * @example
 	 * DELETE /api-key/revoke
-	 * Body: { "third_party_name": "example" }
+	 * Body: { "name": "example" }
 	 */
 	async removeApiKey(req: Request): Promise<any> {
-		const { third_party_name } = req.body;
+		const { name } = req.body;
 
 		// Check if the API key exists
 		const cekApiKey = await this.repository.findApiKey('api_keys', {
-			third_party_name: third_party_name,
+			name: name,
 			status: API_KEY_VALID,
 		});
 
@@ -43,7 +43,7 @@ export class RevokeApiKeyUseCase {
 
 		// Update the API key status to invalid
 		const result = await this.repository.updateApiKey('api_keys', {
-			third_party_name: third_party_name,
+			name: name,
 			status: API_KEY_INVALID,
 		});
 

@@ -1,8 +1,10 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthRepository } from '../../repositories/auth.repository';
 import { JwtService } from '@nestjs/jwt';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import CryptoTs from 'pii-agent-ts';
+import * as geoip from 'geoip-lite';
+import * as useragent from 'useragent';
 
 @Injectable()
 export class RefreshTokenUseCase {
@@ -11,37 +13,12 @@ export class RefreshTokenUseCase {
 		private readonly jwtService: JwtService,
 	) {}
 
-	/**
-	 * Handles the process of refreshing an authentication token.
-	 *
-	 * This method performs several steps:
-	 * 1. Verifies the provided refresh token.
-	 * 2. Decrypts the user session ID from the token payload.
-	 * 3. Checks if a session with the decrypted user session ID exists in the database.
-	 * 4. Encrypts the session ID and generates a new access token and refresh token.
-	 * 5. Updates the user session in the database with the new tokens.
-	 * 6. Returns the new access and refresh tokens.
-	 *
-	 * @param req - The Express request object containing the refresh token in the request parameters.
-	 * @returns Promise<{ access_token: string; refresh_token: string }> - Returns an object containing the new access and refresh tokens.
-	 * @throws Error - Throws an error if the token verification fails, if the session is not found, or if updating the session fails.
-	 *
-	 * @example
-	 * const { access_token, refresh_token } = await refreshTokenUseCase.refreshToken({
-	 *   params: { refresh_token: 'some-refresh-token' }
-	 * });
-	 *
-	 * @summary Steps:
-	 * - Extract the refresh token from the request parameters.
-	 * - Verify the refresh token and extract the session ID from it.
-	 * - Decrypt the session ID to retrieve the actual session ID.
-	 * - Check if the session exists in the database.
-	 * - Encrypt the session ID and generate new access and refresh tokens.
-	 * - Update the session in the database with the new tokens.
-	 * - Return the new tokens to the client.
-	 */
-	async refreshToken(req: Request) {
+	async refreshToken(res: Response, req: Request) {
 		const { refresh_token } = req.params;
+		const api_key_id = res.locals.api_key_id;
+
+		const geo = geoip.lookup(req.ip);
+		const agent = useragent.parse(req.headers['user-agent']);
 
 		// Verify the refresh token without checking expiration
 		const jwt = this.jwtService.verify(refresh_token, {
@@ -57,8 +34,23 @@ export class RefreshTokenUseCase {
 		// Check if a session with the decrypted ID exists
 		const existingSession = await this.repository.checkSessions(
 			'user_sessions',
-			user_session_id,
+			{
+				id: user_session_id,
+				api_key_id: api_key_id,
+				ip_origin: req.ip,
+				geolocation: geo
+					? `${geo.city}, ${geo.region}, ${geo.country}`
+					: 'Unknown',
+				country: geo?.country || 'Unknown',
+				browser: agent.toAgent(),
+				os_type: agent.os.toString(),
+				device: agent.device.toString(),
+			},
 		);
+
+		if (!existingSession) {
+			throw new UnauthorizedException('Invalid credentials');
+		}
 
 		if (existingSession) {
 			// Encrypt the session ID for the new access token payload

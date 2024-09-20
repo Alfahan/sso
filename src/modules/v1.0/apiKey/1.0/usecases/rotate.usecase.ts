@@ -27,14 +27,14 @@ export class RotateApiKeyUseCase {
 	 *
 	 * @example
 	 * POST /api-key/rotate
-	 * Body: { "third_party_name": "example" }
+	 * Body: { "name": "example" }
 	 */
 	async recreateApiKey(req: Request): Promise<any> {
-		const { third_party_name } = req.body;
+		const { name } = req.body;
 
 		// Check if the API key exists
 		const cekApiKey = await this.repository.findApiKey('api_keys', {
-			third_party_name: third_party_name,
+			name: name,
 			status: API_KEY_VALID,
 		});
 
@@ -44,15 +44,15 @@ export class RotateApiKeyUseCase {
 		}
 
 		// Generate a new API key
-		const strKey = await generateRandomString(48);
+		const rdmStr = await generateRandomString(48);
 		const hashedApiKey: string = crypto
 			.createHash('sha256')
-			.update(strKey)
+			.update(rdmStr)
 			.digest('base64');
 
 		// Update the API key in the database
 		const rotateApiKey = await this.repository.updateApiKey('api_keys', {
-			third_party_name: third_party_name,
+			name: name,
 			key: hashedApiKey,
 			status: API_KEY_VALID,
 		});

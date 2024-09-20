@@ -2,11 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { AuthRepository } from '../../repositories/auth.repository';
 import { Request } from 'express';
 import CryptoTs from 'pii-agent-ts';
-import {
-	checkRateLimit,
-	incrementFailedAttempts,
-	resetFailedAttempts,
-} from '@app/middlewares/checkRateLimit.middleware';
 import { TOKEN_VALID } from '@app/const';
 import { AuthHelper } from '../auth.helper';
 
@@ -60,10 +55,10 @@ export class OtpLoginPhoneUseCase {
 		}
 
 		// Check rate limiting for OTP requests
-		await checkRateLimit(user.id, this.repository);
+		await this.helper.checkRateLimit(user.id);
 
 		// Check if the user already has an active OTP that hasn't expired
-		const lastOtp = await this.repository.findLastOtp(
+		const lastOtp = await this.repository.findOtpByUserId(
 			'mfa_infos',
 			TOKEN_VALID,
 			user.id,
@@ -71,11 +66,10 @@ export class OtpLoginPhoneUseCase {
 		const currentTime = new Date();
 
 		// If an OTP is still active, block the request and inform the user when they can request again
-		if (lastOtp && lastOtp.otp_expired_at > currentTime) {
+		if (lastOtp && lastOtp.expires_at > currentTime) {
 			const timeDifference =
-				(lastOtp.otp_expired_at.getTime() - currentTime.getTime()) /
-				60000;
-			await incrementFailedAttempts(user.id, this.repository); // Increment failed attempts if trying too soon
+				(lastOtp.expires_at.getTime() - currentTime.getTime()) / 60000;
+			await this.helper.incrementFailedAttempts(user.id); // Increment failed attempts if trying too soon
 			throw new Error(
 				`OTP already sent. Please wait ${Math.ceil(timeDifference)} minute(s) to request again.`,
 			);
@@ -93,7 +87,7 @@ export class OtpLoginPhoneUseCase {
 		// Save the encrypted OTP and its expiration time to the database
 		await this.repository.saveOtp('mfa_infos', {
 			otp_code: encryptOtp.Value.toString(),
-			otp_expired_at: otpExpired,
+			expires_at: otpExpired,
 			user_id: user.id,
 			status: TOKEN_VALID,
 		});
@@ -102,7 +96,7 @@ export class OtpLoginPhoneUseCase {
 		await this.helper.sendOtpToUser(phone_number, otpCode);
 
 		// Reset the failed login attempts after a successful OTP request
-		await resetFailedAttempts(user.id, this.repository);
+		await this.helper.resetFailedAttempts(user.id);
 
 		return null;
 	}

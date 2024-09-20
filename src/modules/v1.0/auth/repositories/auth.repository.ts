@@ -29,10 +29,11 @@ export class AuthRepository {
 	 * await saveToken('user_tokens', payload);
 	 */
 	async saveToken(table: string, payload: any): Promise<void> {
-		const query = `INSERT INTO ${table} (id, user_id, token, refresh_token, status, ip_origin, geolocation, country, browser, os_type, device) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`;
+		const query = `INSERT INTO ${table} (id, user_id, api_key_id, token, refresh_token, status, ip_origin, geolocation, country, browser, os_type, device) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`;
 		const values = [
 			payload.id,
 			payload.user_id,
+			payload.api_key_id,
 			payload.token,
 			payload.refresh_token,
 			payload.status,
@@ -121,10 +122,10 @@ export class AuthRepository {
 	 * Saves an OTP code in the specified table with user ID, OTP code, and expiry time.
 	 *
 	 * @param {string} table - The name of the table where the OTP will be saved.
-	 * @param {any} payload - The payload containing user_id, otp_code, and otp_expired_at.
+	 * @param {any} payload - The payload containing user_id, otp_code, and expires_at.
 	 *   @property {string} user_id - The user ID associated with the OTP.
 	 *   @property {string} otp_code - The OTP code to be saved.
-	 *   @property {Date} otp_expired_at - The expiry time of the OTP code.
+	 *   @property {Date} expires_at - The expiry time of the OTP code.
 	 * @returns {Promise<void>} - A promise that resolves when the OTP data is successfully saved in the database.
 	 *
 	 * @throws Will log an error if the database query fails.
@@ -133,17 +134,18 @@ export class AuthRepository {
 	 * const payload = {
 	 *   user_id: '12345',
 	 *   otp_code: '67890',
-	 *   otp_expired_at: new Date()
+	 *   expires_at: new Date()
 	 * };
 	 * await saveOtp('user_otps', payload);
 	 */
 	async saveOtp(table: string, payload: any): Promise<void> {
-		const query = `INSERT INTO ${table} (user_id, otp_code, otp_expired_at, status) VALUES ($1, $2, $3, $4)`;
+		const query = `INSERT INTO ${table} (user_id, otp_code, expires_at, status, api_key_id) VALUES ($1, $2, $3, $4, $5)`;
 		const values = [
 			payload.user_id,
 			payload.otp_code,
-			payload.otp_expired_at,
+			payload.expires_at,
 			payload.status,
+			payload.api_key_id,
 		];
 
 		try {
@@ -255,7 +257,7 @@ export class AuthRepository {
 	 * @returns {Promise<string | null>} - A promise that resolves to the token if found, or null if not found.
 	 */
 	async cekValidateToken(table: string, payload: any): Promise<any | null> {
-		const query = `SELECT id, token, refresh_token, status FROM ${table} WHERE user_id=$1 AND ip_origin=$2 AND geolocation=$3 AND country=$4 AND browser=$5 AND os_type=$6 AND device=$7 ORDER BY token DESC LIMIT 1`;
+		const query = `SELECT id, token, refresh_token, status FROM ${table} WHERE user_id=$1 AND ip_origin=$2 AND geolocation=$3 AND country=$4 AND browser=$5 AND os_type=$6 AND device=$7 AND api_key_id=$8 ORDER BY token DESC LIMIT 1`;
 
 		const values = [
 			payload.user_id,
@@ -265,6 +267,7 @@ export class AuthRepository {
 			payload.browser,
 			payload.os_type,
 			payload.device,
+			payload.api_key_id,
 		];
 
 		try {
@@ -323,9 +326,18 @@ export class AuthRepository {
 	 * const session = await checkSessions('sessions_table', id);
 	 * console.log(session);
 	 */
-	async checkSessions(table: string, id: string): Promise<any | null> {
-		const query = `SELECT id FROM ${table} WHERE id=$1 LIMIT 1`;
-		const values = [id];
+	async checkSessions(table: string, payload: any): Promise<any | null> {
+		const query = `SELECT id FROM ${table} WHERE id=$1 AND ip_origin=$2 AND geolocation=$3 AND country=$4 AND browser=$5 AND os_type=$6 AND device=$7 AND api_key_id=$8 ORDER BY id LIMIT 1`;
+		const values = [
+			payload.id,
+			payload.ip_origin,
+			payload.geolocation,
+			payload.country,
+			payload.browser,
+			payload.os_type,
+			payload.device,
+			payload.api_key_id,
+		];
 
 		try {
 			// Execute the query to retrieve the session record
@@ -597,26 +609,55 @@ export class AuthRepository {
 		}
 	}
 
-	/**
-	 * Retrieves the last OTP code and its expiration timestamp for a specific user.
-	 *
-	 * @param {string} table - The name of the table from which to retrieve the data.
-	 * @param {string} user_id - The ID of the user whose last OTP is being retrieved.
-	 * @returns {Promise<any>} - A promise that resolves to the last OTP code and expiration timestamp if found, otherwise null.
-	 *
-	 * @throws Will log an error if the database query fails.
-	 *
-	 * @example
-	 * const lastOtp = await findLastOtp('mfa_infos', 'user123');
-	 * console.log('Last OTP:', lastOtp);
-	 */
-	async findLastOtp(
+	async findOtpByUserId(
 		table: string,
 		status: string,
 		user_id: string,
 	): Promise<any> {
-		const query = `SELECT id, otp_code, otp_expired_at FROM ${table} WHERE user_id=$1 AND status=$2 ORDER BY otp_expired_at DESC LIMIT 1`;
+		const query = `SELECT
+		mi.id as mi_id, 
+		mi.otp_code,
+		mi.expires_at,
+		u.id as user_id,
+		u.email as email
+		FROM ${table} mi 
+		LEFT JOIN users u 
+		ON mi.user_id = u.id
+		WHERE 
+		mi.user_id=$1 AND mi.status=$2 
+		ORDER BY mi.expires_at 
+		DESC LIMIT 1`;
 		const values = [user_id, status];
+
+		try {
+			// Execute the query to retrieve the last OTP code and expiration timestamp
+			const result = await this.dataSource.query(query, values);
+			return result[0] || null; // Return the data if found
+		} catch (error) {
+			// Log any errors that occur during the database query
+			console.error('Error retrieving last OTP:', error);
+		}
+	}
+
+	async findOtpByCode(
+		table: string,
+		status: string,
+		otp_code: string,
+	): Promise<any> {
+		const query = `SELECT
+		mi.id as mi_id, 
+		mi.otp_code,
+		mi.expires_at,
+		u.id as user_id,
+		u.email as email
+		FROM ${table} mi 
+		LEFT JOIN users u 
+		ON mi.user_id = u.id
+		WHERE 
+		mi.otp_code=$1 AND mi.status=$2 
+		ORDER BY mi.expires_at 
+		DESC LIMIT 1`;
+		const values = [otp_code, status];
 
 		try {
 			// Execute the query to retrieve the last OTP code and expiration timestamp
@@ -652,6 +693,95 @@ export class AuthRepository {
 		} catch (error) {
 			// Log any errors that occur during the database query
 			console.error('Error updating status:', error);
+		}
+	}
+
+	async saveCode(table: string, payload: any): Promise<void> {
+		const query = `INSERT INTO ${table} (user_id, code, expires_at, status, api_key_id, ip_origin, geolocation, country, browser, os_type, device) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`;
+		const values = [
+			payload.user_id,
+			payload.code,
+			payload.expires_at,
+			payload.status,
+			payload.api_key_id,
+			payload.ip_origin,
+			payload.geolocation,
+			payload.country,
+			payload.browser,
+			payload.os_type,
+			payload.device,
+		];
+
+		try {
+			// Execute the query to insert the OTP data into the database
+			await this.dataSource.query(query, values);
+		} catch (error) {
+			// Log any errors that occur during the database query
+			console.error('Error saving OTP:', error);
+		}
+	}
+
+	async cekValidateCode(table: string, payload: any): Promise<any | null> {
+		const query = `SELECT id, code, status, expires_at FROM ${table} WHERE user_id=$1 AND ip_origin=$2 AND geolocation=$3 AND country=$4 AND browser=$5 AND os_type=$6 AND device=$7 AND api_key_id=$8 AND status=$9 ORDER BY code DESC LIMIT 1`;
+
+		const values = [
+			payload.user_id,
+			payload.ip_origin,
+			payload.geolocation,
+			payload.country,
+			payload.browser,
+			payload.os_type,
+			payload.device,
+			payload.api_key_id,
+			payload.status,
+		];
+
+		try {
+			// Execute the query to retrieve the latest token
+			const result = await this.dataSource.query(query, values);
+			return result[0];
+		} catch (error) {
+			// Log any errors that occur during the database query
+			console.error('Error retrieving token:', error);
+		}
+	}
+
+	async updateCodeStatus(
+		table: string,
+		status: string,
+		id: string,
+	): Promise<void> {
+		const query = `UPDATE ${table} SET status = $1 WHERE id = $2`;
+		const values = [status, id];
+
+		try {
+			// Execute the query to update the token status in the database
+			await this.dataSource.query(query, values);
+		} catch (error) {
+			// Log any errors that occur during the database query
+			console.error('Error updating token status:', error);
+		}
+	}
+
+	async findCode(table: string, code: string): Promise<any> {
+		const query = `SELECT 
+            ac.id as ac_id, 
+            ac.code, 
+            ac.expires_at, 
+            u.id as user_id,
+			u.email as email
+        FROM ${table} ac left join users u on ac.user_id = u.id WHERE 
+        ac.code=$1 
+        ORDER BY ac.expires_at DESC LIMIT 1`;
+		const values = [code];
+
+		try {
+			// Execute the query to retrieve the last OTP code and expiration timestamp
+			const result = await this.dataSource.query(query, values);
+			return result[0] || null; // Return the data if found
+		} catch (error) {
+			// Log any errors that occur during the database query
+			console.error('Error retrieving last OTP:', error);
 		}
 	}
 }

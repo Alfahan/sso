@@ -3,21 +3,30 @@ import {
 	CreateDateColumn,
 	Entity,
 	Index,
+	OneToMany,
 	PrimaryGeneratedColumn,
 } from 'typeorm';
+import { UserSession } from './userSession.entity';
 
 @Entity('api_keys')
-@Index('idx-api-keys-third_party_name', ['third_party_name']) // Index for user ID to optimize queries related to users
-@Index('idx-api-keys-status', ['status']) // Index for action type to optimize queries based on login actions
+@Index('idx-api-keys-name', ['name'])
+@Index('idx-api-keys-key', ['key'])
+@Index('idx-api-keys-status', ['status'])
 export class ApiKey {
 	@PrimaryGeneratedColumn('uuid')
 	id: string;
 
 	@Column()
-	key: string;
+	name: string;
 
 	@Column()
-	third_party_name: string;
+	key: string;
+
+	@Column({ nullable: true })
+	domain: string;
+
+	@Column({ nullable: true })
+	ip_origin: string;
 
 	@Column()
 	status: string;
@@ -28,4 +37,7 @@ export class ApiKey {
 	})
 	@CreateDateColumn()
 	created_at?: Date;
+
+	@OneToMany(() => UserSession, (user_sessions) => user_sessions.api_key_id)
+	user_sessions: UserSession[];
 }

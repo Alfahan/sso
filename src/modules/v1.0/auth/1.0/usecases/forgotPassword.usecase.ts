@@ -1,7 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthRepository } from '../../repositories/auth.repository';
 import { Request } from 'express';
-// import { checkAnomalous } from '@app/middlewares/checkAnomalous.middleware';
 import { TOKEN_INVALID, TOKEN_VALID } from '@app/const';
 import { JwtService } from '@nestjs/jwt';
 import CryptoTs from 'pii-agent-ts';

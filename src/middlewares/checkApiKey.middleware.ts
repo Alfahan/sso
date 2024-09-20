@@ -12,9 +12,7 @@ import { Request, Response, NextFunction } from 'express';
 
 @Injectable()
 export class ApiKeyMiddleware implements NestMiddleware {
-	constructor(
-		private readonly apiKeyRepository: ApiKeyRepository, // Inject ApiKeyRepository
-	) {}
+	constructor(private readonly apiKeyRepository: ApiKeyRepository) {}
 	async use(req: Request, res: Response, next: NextFunction) {
 		const apiKey = req.headers['x-api-key'] as string;
 
@@ -23,25 +21,23 @@ export class ApiKeyMiddleware implements NestMiddleware {
 		}
 
 		try {
-			// Call repository to check if API key exists and is active
-			const apiKeyEntity = await this.apiKeyRepository.findApiKeyMid(
+			const findApiKeyMid = await this.apiKeyRepository.findApiKeyMid(
 				'api_keys',
 				{ api_key: apiKey, status: API_KEY_VALID },
 			);
 
-			if (!apiKeyEntity) {
+			if (!findApiKeyMid) {
 				throw new HttpException(
 					'Invalid API key',
 					HttpStatus.UNAUTHORIZED,
 				);
 			}
 
-			// If API key is valid, proceed to the next middleware or controller
+			res.locals.api_key_id = findApiKeyMid.id;
+
 			next();
 		} catch (error) {
-			// Handling any caught errors during validation
 			if (error instanceof Error) {
-				// Returning a failure response using ApiResponse utility with an error code and stack trace
 				return ApiResponse.fail(
 					res,
 					error.message,

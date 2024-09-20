@@ -1,9 +1,11 @@
-import { AuthRepository } from '../repositories/auth.repository';
-import * as bcrypt from 'bcrypt'; // bcrypt library for hashing and comparing passwords
+import * as bcrypt from 'bcrypt';
 import * as path from 'path';
 import Notification from 'notif-agent-ts';
-import { BadRequestException } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
+import { TooManyRequestsException } from '@app/common/api-response/interfaces/fabd-to-many-request';
+import { AuthRepository } from '../repositories/auth.repository';
 
+@Injectable()
 export class AuthHelper {
 	constructor(private readonly repository: AuthRepository) {}
 
@@ -172,9 +174,71 @@ export class AuthHelper {
 		// Check if the email is from a forbidden domain
 		const emailDomain = email.split('@')[1]; // Extract domain from email
 		if (forbiddenDomains.includes(emailDomain)) {
-			throw new BadRequestException(
+			throw new ForbiddenException(
 				'Registration using testing email domains is not allowed',
 			);
 		}
+	}
+
+	async checkRateLimit(user_id: string): Promise<void> {
+		const attempt = await this.repository.findFailedLoginAttempts(
+			'users',
+			user_id,
+		);
+
+		if (attempt.failed_login_attempts > 0) {
+			const lastAttemptTime = new Date(attempt.updated_at).getTime();
+
+			const timeSinceLastAttempt = (Date.now() - lastAttemptTime) / 1000;
+
+			if (
+				attempt.failed_login_attempts >= 5 &&
+				timeSinceLastAttempt < 15 * 60
+			) {
+				throw new TooManyRequestsException(
+					'Too many request attempts. Try again later.',
+				);
+			} else if (timeSinceLastAttempt >= 15 * 60) {
+				await this.resetFailedAttempts(user_id);
+			}
+		}
+	}
+
+	async incrementFailedAttempts(user_id: string): Promise<void> {
+		const attempt = await this.repository.findFailedLoginAttempts(
+			'users',
+			user_id,
+		);
+
+		attempt.failed_login_attempts += 1;
+		attempt.updated_at = new Date();
+
+		await this.repository.addFailedLoginAttempts(
+			'users',
+			{
+				failed_login_attempts: attempt.failed_login_attempts,
+				updated_at: attempt.updated_at,
+			},
+			user_id,
+		);
+	}
+
+	async resetFailedAttempts(user_id: string): Promise<void> {
+		const attempt = await this.repository.findFailedLoginAttempts(
+			'users',
+			user_id,
+		);
+
+		attempt.failed_login_attempts = 0;
+		attempt.updated_at = new Date();
+
+		await this.repository.addFailedLoginAttempts(
+			'users',
+			{
+				failed_login_attempts: attempt.failed_login_attempts,
+				updated_at: attempt.updated_at,
+			},
+			user_id,
+		);
 	}
 }

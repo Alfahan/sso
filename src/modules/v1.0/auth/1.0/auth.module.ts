@@ -18,6 +18,7 @@ import { LoginPhoneUseCase } from './usecases/loginPhone.usecase'; // Importing 
 import { VerificationOtpUseCase } from './usecases/verificationOtp.usercase'; // Importing the VerificationOtpUseCase for handling OTP verification
 import { RefreshTokenUseCase } from './usecases/refreshToken.usecase'; // Importing the RefreshTokenUseCase for handling refresh token logic
 import { AuthHelper } from './auth.helper'; // Importing the AuthHelper
+import { GetTokenUseCase } from './usecases/getToken.usecase';
 
 /**
  * @module AuthModuleV10
@@ -35,15 +36,15 @@ import { AuthHelper } from './auth.helper'; // Importing the AuthHelper
 		}),
 		TypeOrmModule.forFeature([]), // Importing TypeOrmModule for integrating with entities (none provided in this example)
 	],
-	// Defining the providers that this module will expose
 	providers: [
+		AuthRepository,
 		AuthHelper, // AuthHelper
+		GetTokenUseCase,
 		ValidateUseCase, // Use case for handling validation logic (e.g., email and phone validation)
 		LoginUseCase, // Use case for handling login functionality
 		VerificationOtpUseCase, // Use case for handling OTP verification after sending
 		RefreshTokenUseCase, // Optional: Use case for handling token refreshing if enabled in the future
 		RegisterUseCase, // Use case for handling registration of new users
-		AuthRepository, // Repository for interacting with the authentication data (e.g., users, tokens)
 		ApiKeyRepository, // Repository for managing API keys
 		LogoutUseCase, // Use case for handling user logout logic
 		ForgotPasswordUseCase, // Use case for handling forgot password requests

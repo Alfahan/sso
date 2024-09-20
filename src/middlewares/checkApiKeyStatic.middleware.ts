@@ -26,12 +26,9 @@ export class ApiKeyStaticMiddleware implements NestMiddleware {
 					HttpStatus.UNAUTHORIZED,
 				);
 			}
-			// If API key is valid, proceed to the next middleware or controller
 			next();
 		} catch (error) {
-			// Handling any caught errors during validation
 			if (error instanceof Error) {
-				// Returning a failure response using ApiResponse utility with an error code and stack trace
 				return ApiResponse.fail(
 					res,
 					error.message,

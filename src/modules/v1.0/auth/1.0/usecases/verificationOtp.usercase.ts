@@ -1,15 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthRepository } from '../../repositories/auth.repository';
-import { Request } from 'express';
-import {
-	checkRateLimit,
-	incrementFailedAttempts,
-	resetFailedAttempts,
-} from '@app/middlewares/checkRateLimit.middleware';
-import CryptoTs from 'pii-agent-ts';
-import { JwtService } from '@nestjs/jwt';
-import { v4 as uuidv4 } from 'uuid';
-import { LOGGED_IN, TOKEN_INVALID, TOKEN_VALID } from '@app/const';
+import { Request, Response } from 'express';
+import { TOKEN_INVALID, TOKEN_VALID } from '@app/const';
 import * as geoip from 'geoip-lite'; // Library to get geolocation data
 import * as useragent from 'useragent'; // Library to parse and identify user agent (e.g., browser, OS)
 import { AuthHelper } from '../auth.helper';
@@ -24,7 +16,6 @@ export class VerificationOtpUseCase {
 	constructor(
 		private readonly helper: AuthHelper,
 		private readonly repository: AuthRepository,
-		private readonly jwtService: JwtService, // Service to handle JWT token creation and validation
 	) {}
 
 	/**
@@ -49,83 +40,57 @@ export class VerificationOtpUseCase {
 	 *   ip: '192.168.0.1',
 	 * });
 	 */
-	async verification(
-		req: Request,
-	): Promise<{ access_token: string; refresh_token: string }> {
-		const { email, otp_code } = req.body;
-		let user = null;
+	async verification(res: Response, req: Request): Promise<{ code: string }> {
+		const { otp_code } = req.body;
+		const api_key_id = res.locals.api_key_id;
 
 		// Retrieve geolocation and user-agent information
 		const geo = geoip.lookup(req.ip);
 		const agent = useragent.parse(req.headers['user-agent']);
 
-		// Find user by email
-		if (email) {
-			user = await this.repository.findByEmail('users', email);
-		}
-
-		if (!user) {
-			throw new UnauthorizedException('Invalid credentials');
-		}
-
-		// Check rate limiting for user login attempts
-		await checkRateLimit(user.id, this.repository);
-
 		// Retrieve the last OTP for the user
-		const lastOtp = await this.repository.findLastOtp(
+		const findOtp = await this.repository.findOtpByCode(
 			'mfa_infos',
 			TOKEN_VALID,
-			user.id,
+			otp_code,
 		);
 
-		if (!lastOtp) {
+		// Check rate limiting for user login attempts
+		await this.helper.checkRateLimit(findOtp.user_id);
+
+		if (!findOtp) {
 			throw new UnauthorizedException('Invalid credentials');
 		}
-
-		// Decrypt the OTP code
-		const decryptOtp = CryptoTs.decryptWithAes(
-			'AES_256_CBC',
-			Buffer.from(lastOtp.otp_code),
-		);
 
 		// Check if OTP has expired
 		const currentTime = new Date();
-		if (lastOtp && lastOtp.otp_expired_at < currentTime) {
-			await incrementFailedAttempts(user.id, this.repository); // Increment failed attempts counter
+		if (findOtp && findOtp.expires_at < currentTime) {
+			await this.helper.incrementFailedAttempts(findOtp.user_id); // Increment failed attempts counter
 			await this.repository.updateOtp(
 				'mfa_infos',
 				TOKEN_INVALID,
-				lastOtp.id,
+				findOtp.mi_id,
 			);
 			throw new Error('OTP Expired.');
 		}
 
 		// Check if provided OTP matches the decrypted OTP
-		if (otp_code !== decryptOtp) {
-			await incrementFailedAttempts(user.id, this.repository); // Increment failed attempts counter
+		if (otp_code !== findOtp.otp_code) {
+			await this.helper.incrementFailedAttempts(findOtp.user_id); // Increment failed attempts counter
 			throw new UnauthorizedException('Invalid credentials');
 		}
 
-		// Generate new JWT tokens
-		const uuid = uuidv4();
-		const encryptUuid = CryptoTs.encryptWithAes('AES_256_CBC', uuid);
-		const payloadToken = { sub: encryptUuid.Value.toString() }; // The payload contains the user id (sub)
-		const newToken = this.jwtService.sign(payloadToken, {
-			expiresIn: '15m', // Set token expiration time to 15 minutes
-		});
-		const encryptId = CryptoTs.encryptWithAes('AES_256_CBC', uuid);
-		const payloadRefToken = { sub: encryptId.Value.toString() };
-		const newRefreshToken = this.jwtService.sign(payloadRefToken, {
-			expiresIn: '7d', // Set token expiration time to 7 days
-		});
+		// Generate Code
+		const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-		// Save new session token in the database
-		const tokenData = {
-			id: uuid,
-			user_id: user.id,
-			token: newToken,
-			refresh_token: newRefreshToken,
-			status: LOGGED_IN,
+		const expired = this.helper.addMinutesToDate(new Date(), 60); // 1 hour
+
+		await this.repository.saveCode('auth_codes', {
+			code: code,
+			expires_at: expired,
+			user_id: findOtp.user_id,
+			api_key_id: api_key_id,
+			status: TOKEN_VALID,
 			ip_origin: req.ip,
 			geolocation: geo
 				? `${geo.city}, ${geo.region}, ${geo.country}`
@@ -134,30 +99,21 @@ export class VerificationOtpUseCase {
 			browser: agent.toAgent(),
 			os_type: agent.os.toString(),
 			device: agent.device.toString(),
-		};
-
-		await this.repository.saveToken('user_sessions', tokenData);
-
-		// Update OTP status
-		await this.repository.updateOtp('mfa_infos', TOKEN_INVALID, lastOtp.id);
-
-		// Reset failed attempts counter
-		await resetFailedAttempts(user.id, this.repository);
-
-		this.helper.sendNewLoginAlert({
-			email: email,
-			browser: agent.toAgent(),
-			device: agent.device.toString(),
-			geolocation: geo
-				? `${geo.city}, ${geo.region}, ${geo.country}`
-				: 'Unknown',
-			country: geo?.country || 'Unknown',
 		});
 
-		// Return the new tokens
+		// Update OTP status
+		await this.repository.updateOtp(
+			'mfa_infos',
+			TOKEN_INVALID,
+			findOtp.mi_id,
+		);
+
+		// Reset failed attempts counter
+		await this.helper.resetFailedAttempts(findOtp.user_id);
+
+		// Return the code
 		return {
-			access_token: newToken,
-			refresh_token: newRefreshToken,
+			code: code,
 		};
 	}
 }

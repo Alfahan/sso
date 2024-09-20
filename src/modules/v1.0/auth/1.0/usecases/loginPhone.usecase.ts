@@ -1,21 +1,18 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthRepository } from '../../repositories/auth.repository';
 import { Request } from 'express';
-import {
-	checkRateLimit,
-	incrementFailedAttempts,
-	resetFailedAttempts,
-} from '@app/middlewares/checkRateLimit.middleware';
 import CryptoTs from 'pii-agent-ts';
 import { LOGGED_IN, TOKEN_INVALID, TOKEN_VALID } from '@app/const';
 import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
 import * as geoip from 'geoip-lite'; // Library to get geolocation data
 import * as useragent from 'useragent'; // Library to parse and identify user agent (e.g., browser, OS)
+import { AuthHelper } from '../auth.helper';
 
 @Injectable()
 export class LoginPhoneUseCase {
 	constructor(
+		private readonly helper: AuthHelper,
 		private readonly repository: AuthRepository,
 		private readonly jwtService: JwtService, // Service to handle JWT token creation and validation
 	) {}
@@ -56,10 +53,10 @@ export class LoginPhoneUseCase {
 		}
 
 		// Check rate limiting for user login attempts
-		await checkRateLimit(user.id, this.repository);
+		await this.helper.checkRateLimit(user.id);
 
 		// Find the last valid OTP for the user
-		const lastOtp = await this.repository.findLastOtp(
+		const lastOtp = await this.repository.findOtpByUserId(
 			'mfa_infos',
 			TOKEN_VALID,
 			user.id,
@@ -78,8 +75,8 @@ export class LoginPhoneUseCase {
 		const currentTime = new Date();
 
 		// Check if OTP has expired
-		if (lastOtp.otp_expired_at < currentTime) {
-			await incrementFailedAttempts(user.id, this.repository); // Increment failed attempts counter if OTP is expired
+		if (lastOtp.expires_at < currentTime) {
+			await this.helper.incrementFailedAttempts(user.id); // Increment failed attempts counter if OTP is expired
 			await this.repository.updateOtp(
 				'mfa_infos',
 				TOKEN_INVALID,
@@ -90,7 +87,7 @@ export class LoginPhoneUseCase {
 
 		// Validate the provided OTP code
 		if (otp_code !== decryptOtp) {
-			await incrementFailedAttempts(user.id, this.repository); // Increment failed attempts counter if OTP is invalid
+			await this.helper.incrementFailedAttempts(user.id); // Increment failed attempts counter if OTP is invalid
 			throw new UnauthorizedException('Invalid credentials');
 		}
 
@@ -118,7 +115,7 @@ export class LoginPhoneUseCase {
 				});
 
 				// Reset failed attempts and return the existing token
-				await resetFailedAttempts(user.id, this.repository);
+				await this.helper.resetFailedAttempts(user.id);
 
 				return {
 					access_token: existingToken.token,
@@ -197,7 +194,7 @@ export class LoginPhoneUseCase {
 		await this.repository.updateOtp('mfa_infos', TOKEN_INVALID, lastOtp.id);
 
 		// Reset failed attempts counter and return new tokens
-		await resetFailedAttempts(user.id, this.repository);
+		await this.helper.resetFailedAttempts(user.id);
 
 		return {
 			access_token: newToken,

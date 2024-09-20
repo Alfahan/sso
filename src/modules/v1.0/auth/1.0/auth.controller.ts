@@ -20,6 +20,7 @@ import { OtpLoginPhoneUseCase } from './usecases/otpLoginPhone.usecase';
 import { LoginPhoneUseCase } from './usecases/loginPhone.usecase';
 import { VerificationOtpUseCase } from './usecases/verificationOtp.usercase';
 import { RefreshTokenUseCase } from './usecases/refreshToken.usecase';
+import { GetTokenUseCase } from './usecases/getToken.usecase';
 
 /**
  * @class AuthControllerV10
@@ -32,6 +33,7 @@ export class AuthControllerV10 {
 		private readonly logoutUseCase: LogoutUseCase, // Handles user logout
 		private readonly verificationOtpUseCase: VerificationOtpUseCase,
 		private readonly otpLoginPhoneUseCase: OtpLoginPhoneUseCase,
+		private readonly getTokenUseCase: GetTokenUseCase,
 		private readonly forgotPasswordUseCase: ForgotPasswordUseCase, // Handles forgot password requests
 		private readonly resetPasswordUseCase: ResetPasswordUseCase, // Handles password reset requests
 		private readonly validateUseCase: ValidateUseCase, // Handles email and phone number validation
@@ -151,7 +153,7 @@ export class AuthControllerV10 {
 		@Req() req: Request, // Injecting the Express request object
 	): Promise<Response> {
 		try {
-			const data = await this.loginUseCase.login(req); // Calling login logic
+			const data = await this.loginUseCase.login(res, req); // Calling login logic
 			return ApiResponse.success(res, data, successCode.SCDTDT0001); // Returning success response
 		} catch (error) {
 			if (error instanceof Error) {
@@ -183,7 +185,10 @@ export class AuthControllerV10 {
 		@Req() req: Request, // Injecting the Express request object
 	): Promise<Response> {
 		try {
-			const data = await this.verificationOtpUseCase.verification(req); // Calling OTP verification logic
+			const data = await this.verificationOtpUseCase.verification(
+				res,
+				req,
+			); // Calling OTP verification logic
 			return ApiResponse.success(res, data, successCode.SCDTDT0001); // Returning success response
 		} catch (error) {
 			if (error instanceof Error) {
@@ -215,7 +220,31 @@ export class AuthControllerV10 {
 		@Req() req: Request,
 	): Promise<Response> {
 		try {
-			const data = await this.refreshTokenUseCase.refreshToken(req); // Calling refresh token logic
+			const data = await this.refreshTokenUseCase.refreshToken(res, req); // Calling refresh token logic
+			return ApiResponse.success(res, data, successCode.SCDTDT0001); // Returning success response
+		} catch (error) {
+			if (error instanceof Error) {
+				return ApiResponse.fail(
+					res,
+					error.message,
+					errorCode.ERDTTD0001,
+					error.stack,
+				); // Handling token refresh error
+			}
+			throw new HttpException(
+				error.message,
+				HttpStatus.INTERNAL_SERVER_ERROR,
+			); // Throwing internal server error
+		}
+	}
+
+	@Post('/token')
+	async getToken(
+		@Res() res: Response,
+		@Req() req: Request,
+	): Promise<Response> {
+		try {
+			const data = await this.getTokenUseCase.getToken(res, req); // Calling refresh token logic
 			return ApiResponse.success(res, data, successCode.SCDTDT0001); // Returning success response
 		} catch (error) {
 			if (error instanceof Error) {

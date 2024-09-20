@@ -17,8 +17,8 @@ export class UserAuditTrail {
 	id: string;
 
 	@ManyToOne(() => User, (user) => user.user_audit_trails)
-	@JoinColumn({ name: 'user_id' }) // Customizes the foreign key column name
-	user_id: User; // Relationship reference to the User entity
+	@JoinColumn({ name: 'user_id' })
+	user_id: User;
 
 	@Column({ nullable: true })
 	entity_name: string;

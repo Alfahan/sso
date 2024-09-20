@@ -27,18 +27,22 @@ export class ApiKeyRepository {
 	 * });
 	 */
 	async saveApiKey(table: string, payload: any): Promise<any> {
-		const query = `INSERT INTO ${table} (third_party_name, key, status) VALUES ($1, $2, $3)`;
+		const query = `INSERT INTO ${table} (name, key, ip_origin, domain, status) VALUES ($1, $2, $3, $4, $5)`;
 		const values = [
-			payload.third_party_name,
-			payload.strKey,
+			payload.name,
+			payload.key,
+			payload.ip_origin,
+			payload.domain,
 			payload.status,
 		];
 
 		try {
 			await this.dataSource.query(query, values);
 			const result = {
-				third_party_name: payload.third_party_name,
-				key: payload.strKey,
+				name: payload.name,
+				key: payload.key,
+				ip_origin: payload.ip_origin,
+				domain: payload.domain,
 				status: payload.status,
 			};
 			return result;
@@ -64,8 +68,8 @@ export class ApiKeyRepository {
 	 * });
 	 */
 	async findApiKey(table: string, payload: any): Promise<any> {
-		const query = `SELECT third_party_name, key, status FROM ${table} WHERE third_party_name=$1 AND status=$2 ORDER BY third_party_name DESC LIMIT 1`;
-		const values = [payload.third_party_name, payload.status];
+		const query = `SELECT name, key, ip_origin, domain, status FROM ${table} WHERE name=$1 AND status=$2 ORDER BY name DESC LIMIT 1`;
+		const values = [payload.name, payload.status];
 		try {
 			const result = await this.dataSource.query(query, values);
 			return result[0] || null;
@@ -91,7 +95,7 @@ export class ApiKeyRepository {
 	 * });
 	 */
 	async findApiKeyMid(table: string, payload: any): Promise<any> {
-		const query = `SELECT key FROM ${table} WHERE key=$1 AND status=$2 ORDER BY key DESC LIMIT 1`;
+		const query = `SELECT id, key FROM ${table} WHERE key=$1 AND status=$2 ORDER BY key DESC LIMIT 1`;
 		const values = [payload.api_key, payload.status];
 		try {
 			const result = await this.dataSource.query(query, values);
@@ -121,7 +125,7 @@ export class ApiKeyRepository {
 	async updateApiKey(
 		table: string,
 		updatedFields: {
-			third_party_name?: string;
+			name?: string;
 			key?: string;
 			status?: string;
 		},
@@ -130,9 +134,9 @@ export class ApiKeyRepository {
 		const values: any[] = [];
 		let index = 1;
 
-		if (updatedFields.third_party_name) {
-			setClause += `third_party_name = $${index++}, `;
-			values.push(updatedFields.third_party_name);
+		if (updatedFields.name) {
+			setClause += `name = $${index++}, `;
+			values.push(updatedFields.name);
 		}
 
 		if (updatedFields.key) {
@@ -150,14 +154,14 @@ export class ApiKeyRepository {
 		const query = `
 			UPDATE ${table}
 			SET ${setClause}
-			WHERE third_party_name = $${index++}
+			WHERE name = $${index++}
 			RETURNING *;
 		`;
 
 		try {
 			const result = await this.dataSource.query(query, [
 				...values,
-				updatedFields.third_party_name,
+				updatedFields.name,
 			]);
 			return result[0] || null;
 		} catch (error) {

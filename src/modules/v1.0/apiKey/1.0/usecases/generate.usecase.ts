@@ -26,32 +26,38 @@ export class GenerateApiKeyUseCase {
 	 *
 	 * @example
 	 * POST /api-key/generate
-	 * Body: { "third_party_name": "example" }
+	 * Body: {
+			"name": "example",
+			"ip_origin": "127.0.0.1",
+			"domain": "localhost:3000",
+		}
 	 */
 	async createApiKey(req: Request): Promise<any> {
-		const { third_party_name } = req.body;
+		const { name, ip_origin, domain } = req.body;
 
 		// Check if a valid API key already exists for the third party
 		const cekApiKey = await this.repository.findApiKey('api_keys', {
-			third_party_name: third_party_name,
+			name: name,
 			status: API_KEY_VALID,
 		});
 
 		// If no valid API key is found, create a new one
 		if (!cekApiKey) {
 			// Generate a random string for the API key
-			const strKey = await generateRandomString(48);
+			const rdmStr = await generateRandomString(48);
 
 			// Hash the generated key using SHA-256 and encode it in base64
 			const hashedApiKey: string = crypto
 				.createHash('sha256')
-				.update(strKey)
+				.update(rdmStr)
 				.digest('base64');
 
 			// Save the new API key in the database
 			const saveApiKey = await this.repository.saveApiKey('api_keys', {
-				third_party_name: third_party_name,
-				strKey: hashedApiKey,
+				name: name,
+				ip_origin: ip_origin,
+				domain: domain,
+				key: hashedApiKey,
 				status: API_KEY_VALID,
 			});
 
