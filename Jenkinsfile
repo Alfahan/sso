@@ -10,7 +10,7 @@ PipelineDockerEntryV2([
     imageName: 'fab-digital-core-api-customer-sso',
 
     // Nama cluster di mana service akan dideploy. Deployment sudah ditentukan di awal, mohon tidak di ubah tanpa komunikasi dengan tim Playcourt.
-    deployment: 'jtn',
+    deployment: 'jtn-general',
 
     // Prerun Script
     // Pada bagian ini anda dapat menambahkan dan mengkonfigurasikan script untuk dijalankan sebelum melakukan test atau build service yang anda buat
