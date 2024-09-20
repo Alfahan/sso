@@ -59,7 +59,7 @@ export class $npmConfigName1726726035214 implements MigrationInterface {
 			`CREATE INDEX "idx-mfa-infos-user_id" ON "mfa_infos" ("user_id") `,
 		);
 		await queryRunner.query(
-			`CREATE TABLE "users" ("created_at" TIMESTAMP NOT NULL DEFAULT now(), "created_by" character varying NOT NULL DEFAULT '1', "created_name" character varying NOT NULL DEFAULT 'System', "updated_at" TIMESTAMP DEFAULT now(), "updated_by" character varying, "updated_name" character varying, "deleted_at" TIMESTAMP, "deleted_by" character varying, "deleted_name" character varying, "id" uuid NOT NULL DEFAULT uuid_generate_v4(), "username" character varying NOT NULL, "phone_number" character varying NOT NULL, "email" character varying NOT NULL, "password" character varying NOT NULL, "status" character varying, "segment" character varying, "failed_login_attempts" integer, CONSTRAINT "PK_a3ffb1c0c8416b9fc6f907b7433" PRIMARY KEY ("id"))`,
+			`CREATE TABLE "users" ("created_at" TIMESTAMP NOT NULL DEFAULT now(), "created_by" character varying NOT NULL DEFAULT '1', "created_name" character varying NOT NULL DEFAULT 'System', "updated_at" TIMESTAMP DEFAULT now(), "updated_by" character varying, "updated_name" character varying, "deleted_at" TIMESTAMP, "deleted_by" character varying, "deleted_name" character varying, "id" uuid NOT NULL DEFAULT uuid_generate_v4(), "username" character varying NOT NULL, "phone_number" character varying NOT NULL, "email" character varying NOT NULL, "password" character varying NOT NULL, "status" character varying, "segment" character varying, "failed_login_attempts" integer, CONSTRAINT "PK_a3ffb1c0c8416b9fc6f907b7439" PRIMARY KEY ("id"))`,
 		);
 		await queryRunner.query(
 			`CREATE INDEX "idx-users-deleted_at" ON "users" ("deleted_at") `,
