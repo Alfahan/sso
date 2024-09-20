@@ -66,6 +66,6 @@ export class AuthModuleV10 {
 	configure(consumer: MiddlewareConsumer) {
 		consumer
 			.apply(ApiKeyMiddleware) // Applying the ApiKeyMiddleware to check the validity of the API key
-			.forRoutes({ path: 'v1.0/auth/*', method: RequestMethod.ALL }); // Applying the middleware to all routes that start with 'v1.0/auth/*'
+			.forRoutes({ path: 'sso/v1.0/auth/*', method: RequestMethod.ALL }); // Applying the middleware to all routes that start with 'v1.0/auth/*'
 	}
 }

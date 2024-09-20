@@ -40,6 +40,9 @@ export class ApiKeyModuleV10 {
 	configure(consumer: MiddlewareConsumer) {
 		consumer
 			.apply(ApiKeyStaticMiddleware) // Applying the ApiKeyMiddleware to validate API keys
-			.forRoutes({ path: 'v1.0/api-key/*', method: RequestMethod.ALL }); // Applying the middleware to all routes under 'v1.0/auth/*'
+			.forRoutes({
+				path: 'sso/v1.0/api-key/*',
+				method: RequestMethod.ALL,
+			}); // Applying the middleware to all routes under 'v1.0/auth/*'
 	}
 }

@@ -20,7 +20,7 @@ import { RevokeApiKeyUseCase } from './usecases/revoke.usecase';
  * @description
  * This controller handles API key operations for version 1.0 of the API, such as generating, rotating, and revoking API keys.
  */
-@Controller({ path: 'api-key', version: '1.0' })
+@Controller({ path: 'sso/v1.0/api-key', version: '1.0' })
 export class ApiKeyControllerV10 {
 	constructor(
 		private readonly revokeApiKey: RevokeApiKeyUseCase,

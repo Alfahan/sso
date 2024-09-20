@@ -26,7 +26,7 @@ import { GetTokenUseCase } from './usecases/getToken.usecase';
  * @class AuthControllerV10
  * @description Controller for handling authentication-related routes such as login, registration, validation, logout, password recovery, etc.
  */
-@Controller({ path: 'auth', version: '1.0' }) // Defining the base path and version for the authentication controller
+@Controller({ path: 'sso/v1.0/auth', version: '1.0' }) // Defining the base path and version for the authentication controller
 export class AuthControllerV10 {
 	// Injecting various use cases through the constructor
 	constructor(
