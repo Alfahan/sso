@@ -4,8 +4,8 @@ volumes:
   mongo_data: {}
 
 services:
-  boilerplate_nestjs:
-        container_name: boilerplate_nestjs
+  fab_digital_core_api_customer_sso:
+        container_name: fab_digital_core_api_customer_sso
         build: .
         environment:
          - PORT=3030
@@ -16,9 +16,9 @@ services:
         ports:
          - ${PORT}:8080
         depends_on:
-         - postgres_boilerplate_nestjs
-  postgres_boilerplate_nestjs:
-        container_name: boilerplate_nestjs_postgres
+         - postgres_fab_digital_core_api_customer_sso
+  postgres_fab_digital_core_api_customer_sso:
+        container_name: boilerplate_fab_digital_core_api_customer_sso
         image: postgres:13.1-alpine
         restart: always
         environment:
