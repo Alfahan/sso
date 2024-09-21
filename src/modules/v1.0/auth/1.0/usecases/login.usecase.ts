@@ -20,45 +20,53 @@ export class LoginUseCase {
 		const geo = geoip.lookup(req.ip);
 		const agent = useragent.parse(req.headers['user-agent']);
 
-		let user = null;
-
-		// Find the user by email
-		if (email) {
-			user = await this.repository.findByEmail('users', email); // Fetch user by email
-		}
-
-		// If user is not found, throw an UnauthorizedException
-		if (!user) {
-			// Log login
-			await this.repository.saveAuthHistory('auth_histories', {
-				user_id: user.id,
-				ip_origin: req.ip,
-				geolocation: geo
-					? `${geo.city}, ${geo.region}, ${geo.country}`
-					: 'Unknown',
-				country: geo?.country || 'Unknown',
-				browser: agent.toAgent(),
-				os_type: agent.os.toString(),
-				device: agent.device.toString(),
-				action: 'LOGIN_FAILED',
-			});
+		if (!email || !password) {
 			throw new UnauthorizedException('Invalid credentials');
 		}
 
-		// Check rate limiting for user login attempts
+		// Find user by email
+		const user = await this.repository.findByEmail('users', email);
+		if (!user) {
+			await this.helper.logAuthHistory(
+				req,
+				geo,
+				agent,
+				'LOGIN_FAILED',
+				user.id,
+			);
+			throw new UnauthorizedException('Invalid credentials');
+		}
+
+		// Rate limit check
 		await this.helper.checkRateLimit(user.id);
 
-		// Validate the user's password
+		// Validate password
 		const isValidPassword = await this.helper.isPasswordValid(
 			password,
 			user.password,
 		);
-
 		if (!isValidPassword) {
-			await this.helper.incrementFailedAttempts(user.id); // Increment failed attempts counter if password is invalid
-			// Log login
-			await this.repository.saveAuthHistory('auth_histories', {
+			await this.handleInvalidPassword(user.id, req, geo, agent);
+		}
+
+		// Process token or OTP if password is valid
+		return await this.processTokenOrOtp(user, req, geo, agent, api_key_id);
+	}
+
+	private async processTokenOrOtp(
+		user: any,
+		req: Request,
+		geo: any,
+		agent: any,
+		api_key_id: string,
+	): Promise<{ code: string }> {
+		const currentTime = new Date();
+		const existingCode = await this.repository.cekValidateCode(
+			'auth_codes',
+			{
 				user_id: user.id,
+				api_key_id,
+				status: TOKEN_VALID,
 				ip_origin: req.ip,
 				geolocation: geo
 					? `${geo.city}, ${geo.region}, ${geo.country}`
@@ -67,145 +75,91 @@ export class LoginUseCase {
 				browser: agent.toAgent(),
 				os_type: agent.os.toString(),
 				device: agent.device.toString(),
-				action: 'LOGIN_FAILED',
-			});
-			throw new UnauthorizedException('Invalid credentials');
-		}
+			},
+		);
 
-		try {
-			const currentTime = new Date();
-			// Check if the user already has a valid token
-			const existingCode = await this.repository.cekValidateCode(
-				'auth_codes',
-				{
-					user_id: user.id,
-					api_key_id: api_key_id,
-					status: TOKEN_VALID,
-					ip_origin: req.ip,
-					geolocation: geo
-						? `${geo.city}, ${geo.region}, ${geo.country}`
-						: 'Unknown',
-					country: geo?.country || 'Unknown',
-					browser: agent.toAgent(),
-					os_type: agent.os.toString(),
-					device: agent.device.toString(),
-				},
-			);
-
-			if (existingCode) {
-				if (existingCode && existingCode.expires_at < currentTime) {
-					await this.helper.incrementFailedAttempts(user.id); // Increment failed attempts counter
-					await this.repository.updateCodeStatus(
-						'auth_codes',
-						TOKEN_INVALID,
-						existingCode.id,
-					);
-					// Log login
-					await this.repository.saveAuthHistory('auth_histories', {
-						user_id: user.id,
-						ip_origin: req.ip,
-						geolocation: geo
-							? `${geo.city}, ${geo.region}, ${geo.country}`
-							: 'Unknown',
-						country: geo?.country || 'Unknown',
-						browser: agent.toAgent(),
-						os_type: agent.os.toString(),
-						device: agent.device.toString(),
-						action: 'LOGIN_FAILED',
-					});
-					throw new Error('Code Expired.');
-				}
-				await this.repository.saveAuthHistory('auth_histories', {
-					user_id: user.id,
-					ip_origin: req.ip,
-					geolocation: geo
-						? `${geo.city}, ${geo.region}, ${geo.country}`
-						: 'Unknown',
-					country: geo?.country || 'Unknown',
-					browser: agent.toAgent(),
-					os_type: agent.os.toString(),
-					device: agent.device.toString(),
-					action: 'LOGIN_SUCCESS',
-				});
-
-				await this.helper.resetFailedAttempts(user.id);
-
-				return {
-					code: existingCode.code,
-				};
+		if (existingCode) {
+			if (existingCode.expires_at < currentTime) {
+				await this.helper.incrementFailedAttempts(user.id);
+				this.repository.updateCodeStatus(
+					'auth_codes',
+					TOKEN_INVALID,
+					existingCode.id,
+				);
+				await this.helper.logAuthHistory(
+					req,
+					geo,
+					agent,
+					'LOGIN_FAILED',
+					user.id,
+				);
+				throw new Error('Code Expired.');
 			}
 
-			// Check if the user already has an active OTP that hasn't expired
-			const findOtp = await this.repository.findOtpByUserId(
-				'mfa_infos',
-				TOKEN_VALID,
+			await this.helper.logAuthHistory(
+				req,
+				geo,
+				agent,
+				'LOGIN_SUCCESS',
 				user.id,
 			);
-
-			// If an OTP is still active, block the request and inform the user when they can request again
-			if (findOtp && findOtp.expires_at > currentTime) {
-				const timeDifference =
-					(findOtp.expires_at.getTime() - currentTime.getTime()) /
-					60000;
-				await this.helper.incrementFailedAttempts(user.id); // Increment failed attempts if trying too soon
-				// Log login
-				await this.repository.saveAuthHistory('auth_histories', {
-					user_id: user.id,
-					ip_origin: req.ip,
-					geolocation: geo
-						? `${geo.city}, ${geo.region}, ${geo.country}`
-						: 'Unknown',
-					country: geo?.country || 'Unknown',
-					browser: agent.toAgent(),
-					os_type: agent.os.toString(),
-					device: agent.device.toString(),
-					action: 'LOGIN_FAILED',
-				});
-				throw new Error(
-					`OTP already sent. Please wait ${Math.ceil(timeDifference)} minute(s) to request again.`,
-				);
-			}
-
-			// Generate a new OTP code
-			const otpCode = Math.floor(
-				100000 + Math.random() * 900000,
-			).toString();
-
-			// Set the expiration time for the OTP to 1 minute from now
-			const otpExpired = this.helper.addMinutesToDate(new Date(), 1); // 1 minutes
-
-			// Save the encrypted OTP and its expiration time to the database
-			await this.repository.saveOtp('mfa_infos', {
-				otp_code: otpCode,
-				expires_at: otpExpired,
-				user_id: user.id,
-				status: TOKEN_VALID,
-				api_key_id: api_key_id,
-			});
-
-			this.helper.sendOtpVerification(email, otpCode);
-
-			await this.helper.resetFailedAttempts(user.id);
-
-			// Throw an exception to indicate that OTP verification is needed
-			throw new UnauthorizedException(
-				'Please verify your OTP as you are logging in from a different device.',
-			);
-		} catch (error) {
-			// Log login
-			await this.repository.saveAuthHistory('auth_histories', {
-				user_id: user.id,
-				ip_origin: req.ip,
-				geolocation: geo
-					? `${geo.city}, ${geo.region}, ${geo.country}`
-					: 'Unknown',
-				country: geo?.country || 'Unknown',
-				browser: agent.toAgent(),
-				os_type: agent.os.toString(),
-				device: agent.device.toString(),
-				action: 'LOGIN_FAILED',
-			});
-			throw error; // Rethrow the exception
+			return { code: existingCode.code };
 		}
+
+		// Check for active OTP
+		const findOtp = await this.repository.findOtpByUserId(
+			'mfa_infos',
+			TOKEN_VALID,
+			user.id,
+		);
+		if (findOtp && findOtp.expires_at > currentTime) {
+			const timeDiff = Math.ceil(
+				(findOtp.expires_at.getTime() - currentTime.getTime()) / 60000,
+			);
+			await this.helper.incrementFailedAttempts(user.id);
+			await this.helper.logAuthHistory(
+				req,
+				geo,
+				agent,
+				'LOGIN_FAILED',
+				user.id,
+			);
+			throw new Error(
+				`OTP already sent. Please wait ${timeDiff} minute(s) to request again.`,
+			);
+		}
+
+		// Generate new OTP
+		const otpCode = this.helper.generateOtpCode();
+		const otpExpired = this.helper.addMinutesToDate(new Date(), 1);
+		await this.repository.saveOtp('mfa_infos', {
+			otp_code: otpCode,
+			expires_at: otpExpired,
+			user_id: user.id,
+			status: TOKEN_VALID,
+			api_key_id,
+		});
+
+		this.helper.sendOtpVerification(user.email, otpCode);
+		await this.helper.resetFailedAttempts(user.id);
+
+		throw new UnauthorizedException('Please verify your OTP.');
+	}
+
+	private async handleInvalidPassword(
+		user_id: string,
+		req: Request,
+		geo: any,
+		agent: any,
+	) {
+		await this.helper.incrementFailedAttempts(user_id);
+		await this.helper.logAuthHistory(
+			req,
+			geo,
+			agent,
+			'LOGIN_FAILED',
+			user_id,
+		);
+		throw new UnauthorizedException('Invalid credentials');
 	}
 }

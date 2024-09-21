@@ -1,13 +1,20 @@
 import * as bcrypt from 'bcrypt';
 import * as path from 'path';
+import CryptoTs from 'pii-agent-ts';
+import { v4 as uuidv4 } from 'uuid';
 import Notification from 'notif-agent-ts';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { TooManyRequestsException } from '@app/common/api-response/interfaces/fabd-to-many-request';
 import { AuthRepository } from '../repositories/auth.repository';
+import { Request } from 'express';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthHelper {
-	constructor(private readonly repository: AuthRepository) {}
+	constructor(
+		private readonly repository: AuthRepository,
+		private readonly jwtService: JwtService,
+	) {}
 
 	/**
 	 * Validates the given plain password against the hashed password stored in the database.
@@ -240,5 +247,43 @@ export class AuthHelper {
 			},
 			user_id,
 		);
+	}
+
+	generateOtpCode(): string {
+		return Math.floor(100000 + Math.random() * 900000).toString(); // Generates a 6-digit OTP
+	}
+
+	async logAuthHistory(
+		req: Request,
+		geo: any,
+		agent: any,
+		action: string,
+		user_id?: string,
+	) {
+		await this.repository.saveAuthHistory('auth_histories', {
+			user_id: user_id || null,
+			ip_origin: req.ip,
+			geolocation: geo
+				? `${geo.city}, ${geo.region}, ${geo.country}`
+				: 'Unknown',
+			country: geo?.country || 'Unknown',
+			browser: agent.toAgent(),
+			os_type: agent.os.toString(),
+			device: agent.device.toString(),
+			action,
+		});
+	}
+
+	generateTokens() {
+		const uuid = uuidv4();
+		const encryptUuid = CryptoTs.encryptWithAes('AES_256_CBC', uuid);
+		const payloadToken = { sub: encryptUuid.Value.toString() };
+		const accessToken = this.jwtService.sign(payloadToken, {
+			expiresIn: '15m',
+		});
+		const refreshToken = this.jwtService.sign(payloadToken, {
+			expiresIn: '7d',
+		});
+		return { accessToken, refreshToken, uuid };
 	}
 }

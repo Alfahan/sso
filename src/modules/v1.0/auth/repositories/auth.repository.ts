@@ -416,7 +416,7 @@ export class AuthRepository {
 	 * console.log(user);
 	 */
 	async findByEmail(table: string, email: string): Promise<any | null> {
-		const query = `SELECT id, password FROM ${table} WHERE email=$1 LIMIT 1`;
+		const query = `SELECT id, email, password FROM ${table} WHERE email=$1 LIMIT 1`;
 		const value = [email];
 
 		try {
