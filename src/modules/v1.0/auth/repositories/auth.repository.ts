@@ -359,7 +359,7 @@ export class AuthRepository {
 		table: string,
 		phone_number: string,
 	): Promise<any | null> {
-		const query = `SELECT id, password FROM ${table} WHERE phone_number=$1 LIMIT 1`;
+		const query = `SELECT id, email, password FROM ${table} WHERE phone_number=$1 LIMIT 1`;
 		const value = [phone_number];
 
 		try {
@@ -751,7 +751,7 @@ export class AuthRepository {
 		status: string,
 		id: string,
 	): Promise<void> {
-		const query = `UPDATE ${table} SET status = $1 WHERE id = $2`;
+		const query = `UPDATE ${table} SET status = $1 WHERE user_id = $2`;
 		const values = [status, id];
 
 		try {

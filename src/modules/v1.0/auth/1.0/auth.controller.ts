@@ -17,7 +17,6 @@ import { LogoutUseCase } from './usecases/logout.usecase'; // Importing the Logo
 import { ForgotPasswordUseCase } from './usecases/forgotPassword.usecase'; // Importing ForgotPasswordUseCase for handling password recovery
 import { ResetPasswordUseCase } from './usecases/resetPassword.usecase'; // Importing ResetPasswordUseCase for resetting the password
 import { OtpLoginPhoneUseCase } from './usecases/otpLoginPhone.usecase';
-import { LoginPhoneUseCase } from './usecases/loginPhone.usecase';
 import { VerificationOtpUseCase } from './usecases/verificationOtp.usercase';
 import { RefreshTokenUseCase } from './usecases/refreshToken.usecase';
 import { GetTokenUseCase } from './usecases/getToken.usecase';
@@ -38,7 +37,6 @@ export class AuthControllerV10 {
 		private readonly resetPasswordUseCase: ResetPasswordUseCase, // Handles password reset requests
 		private readonly validateUseCase: ValidateUseCase, // Handles email and phone number validation
 		private readonly loginUseCase: LoginUseCase, // Handles user login
-		private readonly loginPhoneUseCase: LoginPhoneUseCase,
 		private readonly refreshTokenUseCase: RefreshTokenUseCase, // (Optional) Refresh Token Use Case can be added
 		private readonly registerUseCase: RegisterUseCase, // Handles user registration
 	) {}
@@ -308,7 +306,10 @@ export class AuthControllerV10 {
 		@Req() req: Request, // Injecting the Express request object
 	): Promise<Response> {
 		try {
-			const data = await this.loginPhoneUseCase.login(req); // Calling login logic
+			const data = await this.verificationOtpUseCase.verification(
+				res,
+				req,
+			); // Calling login logic
 			return ApiResponse.success(res, data, successCode.SCDTDT0011); // Returning success response
 		} catch (error) {
 			if (error instanceof Error) {

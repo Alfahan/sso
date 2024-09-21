@@ -27,13 +27,6 @@ export class LoginUseCase {
 		// Find user by email
 		const user = await this.repository.findByEmail('users', email);
 		if (!user) {
-			await this.helper.logAuthHistory(
-				req,
-				geo,
-				agent,
-				'LOGIN_FAILED',
-				user.id,
-			);
 			throw new UnauthorizedException('Invalid credentials');
 		}
 
@@ -81,10 +74,10 @@ export class LoginUseCase {
 		if (existingCode) {
 			if (existingCode.expires_at < currentTime) {
 				await this.helper.incrementFailedAttempts(user.id);
-				this.repository.updateCodeStatus(
+				await this.repository.updateCodeStatus(
 					'auth_codes',
 					TOKEN_INVALID,
-					existingCode.id,
+					user.id,
 				);
 				await this.helper.logAuthHistory(
 					req,

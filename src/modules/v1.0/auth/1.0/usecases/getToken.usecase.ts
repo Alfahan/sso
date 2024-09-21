@@ -28,6 +28,13 @@ export class GetTokenUseCase {
 		// Check if code is valid and not expired
 		if (!findCode || new Date() > findCode.expires_at) {
 			await this.handleFailedAttempt(findCode);
+			await this.helper.logAuthHistory(
+				req,
+				geo,
+				agent,
+				'LOGIN_SUCCESS',
+				findCode.user_id,
+			);
 			throw new UnauthorizedException('Invalid or expired code.');
 		}
 
@@ -77,8 +84,10 @@ export class GetTokenUseCase {
 			refresh_token: refreshToken,
 			status: LOGGED_IN,
 			ip_origin: req.ip,
-			geolocation: geo.location,
-			country: geo.country,
+			geolocation: geo
+				? `${geo.city}, ${geo.region}, ${geo.country}`
+				: 'Unknown',
+			country: geo?.country || 'Unknown',
 			browser: agent.toAgent(),
 			os_type: agent.os.toString(),
 			device: agent.device.toString(),
@@ -89,8 +98,10 @@ export class GetTokenUseCase {
 			email: findCode.email,
 			browser: agent.toAgent(),
 			device: agent.device.toString(),
-			geolocation: geo.location,
-			country: geo.country,
+			geolocation: geo
+				? `${geo.city}, ${geo.region}, ${geo.country}`
+				: 'Unknown',
+			country: geo?.country || 'Unknown',
 		});
 
 		return { access_token: accessToken, refresh_token: refreshToken };
@@ -102,7 +113,7 @@ export class GetTokenUseCase {
 			await this.repository.updateCodeStatus(
 				'auth_codes',
 				TOKEN_INVALID,
-				findCode.ac_id,
+				findCode.user_id,
 			);
 		}
 	}
