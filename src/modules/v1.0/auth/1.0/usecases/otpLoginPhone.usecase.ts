@@ -56,7 +56,7 @@ export class OtpLoginPhoneUseCase {
 
 		// Generate new OTP
 		const otpCode = this.helper.generateOtpCode();
-		const otpExpired = this.helper.addMinutesToDate(new Date(), 1);
+		const otpExpired = this.helper.addMinutesToDate(new Date(), 10);
 		await this.repository.saveOtp('mfa_infos', {
 			otp_code: otpCode,
 			expires_at: otpExpired,
