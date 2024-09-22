@@ -14,7 +14,6 @@ import { LogoutUseCase } from './usecases/logout.usecase'; // Importing the use 
 import { ForgotPasswordUseCase } from './usecases/forgotPassword.usecase'; // Importing the use case for handling forgot password functionality
 import { ResetPasswordUseCase } from './usecases/resetPassword.usecase'; // Importing the use case for handling password resets
 import { OtpLoginPhoneUseCase } from './usecases/otpLoginPhone.usecase'; // Importing the use case for handling OTP-based phone login
-import { LoginPhoneUseCase } from './usecases/loginPhone.usecase'; // Importing the use case for handling phone-based login
 import { VerificationOtpUseCase } from './usecases/verificationOtp.usercase'; // Importing the VerificationOtpUseCase for handling OTP verification
 import { RefreshTokenUseCase } from './usecases/refreshToken.usecase'; // Importing the RefreshTokenUseCase for handling refresh token logic
 import { AuthHelper } from './auth.helper'; // Importing the AuthHelper
@@ -50,7 +49,6 @@ import { GetTokenUseCase } from './usecases/getToken.usecase';
 		ForgotPasswordUseCase, // Use case for handling forgot password requests
 		ResetPasswordUseCase, // Use case for handling password reset functionality
 		OtpLoginPhoneUseCase, // Use case for handling OTP login via phone number
-		LoginPhoneUseCase, // Use case for handling login via phone number without OTP
 	],
 	// Defining the controllers that handle routing
 	controllers: [AuthControllerV10], // AuthController manages authentication routes (e.g., login, registration)

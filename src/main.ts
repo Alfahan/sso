@@ -6,8 +6,12 @@ async function bootstrap() {
 	// Create a NestJS application instance with CORS enabled
 	const app = await NestFactory.create(AppModule, { cors: true });
 
-	// Enable CORS (Cross-Origin Resource Sharing) for the application
-	app.enableCors();
+	app.enableCors({
+		origin: '*',
+		methods: 'GET,POST,PUT,PATCH,DELETE',
+		allowedHeaders: 'Content-Type,Authorization',
+		credentials: true,
+	});
 
 	// Enable versioning of the API routes
 	app.enableVersioning();
