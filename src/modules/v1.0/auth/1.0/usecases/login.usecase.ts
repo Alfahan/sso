@@ -59,7 +59,6 @@ export class LoginUseCase {
 			{
 				user_id: user.id,
 				api_key_id,
-				status: TOKEN_VALID,
 				ip_origin: req.ip,
 				geolocation: geo
 					? `${geo.city}, ${geo.region}, ${geo.country}`
@@ -73,7 +72,6 @@ export class LoginUseCase {
 
 		if (existingCode) {
 			if (existingCode.expires_at < currentTime) {
-				await this.helper.incrementFailedAttempts(user.id);
 				await this.repository.updateCodeStatus(
 					'auth_codes',
 					TOKEN_INVALID,
