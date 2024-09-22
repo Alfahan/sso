@@ -59,22 +59,13 @@ export class VerificationOtpUseCase {
 		}
 
 		// Generate new code and save to database
-		const code = this.helper.generateOtpCode();
-		await this.repository.saveCode('auth_codes', {
-			code,
-			expires_at: this.helper.addMinutesToDate(currentTime, 60),
-			user_id: findOtp.user_id,
+		const { code } = await this.helper.setCode(
+			req,
+			findOtp.user_id,
 			api_key_id,
-			status: TOKEN_VALID,
-			ip_origin: req.ip,
-			geolocation: geo
-				? `${geo.city}, ${geo.region}, ${geo.country}`
-				: 'Unknown',
-			country: geo?.country || 'Unknown',
-			browser: agent.toAgent(),
-			os_type: agent.os.toString(),
-			device: agent.device.toString(),
-		});
+			geo,
+			agent,
+		);
 
 		// Invalidate OTP and reset failed attempts
 		await this.repository.updateOtp(

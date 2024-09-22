@@ -8,6 +8,7 @@ import { TooManyRequestsException } from '@app/common/api-response/interfaces/fa
 import { AuthRepository } from '../repositories/auth.repository';
 import { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
+import { TOKEN_VALID } from '@app/const';
 
 @Injectable()
 export class AuthHelper {
@@ -285,5 +286,33 @@ export class AuthHelper {
 			expiresIn: '7d',
 		});
 		return { accessToken, refreshToken, uuid };
+	}
+
+	async setCode(
+		req: Request,
+		user_id: string,
+		api_key_id: string,
+		geo: any,
+		agent: any,
+	): Promise<{ code: string }> {
+		const currentTime = new Date();
+		const code = this.generateOtpCode();
+		await this.repository.saveCode('auth_codes', {
+			code,
+			expires_at: this.addMinutesToDate(currentTime, 60),
+			user_id: user_id,
+			api_key_id,
+			status: TOKEN_VALID,
+			ip_origin: req.ip,
+			geolocation: geo
+				? `${geo.city}, ${geo.region}, ${geo.country}`
+				: 'Unknown',
+			country: geo?.country || 'Unknown',
+			browser: agent.toAgent(),
+			os_type: agent.os.toString(),
+			device: agent.device.toString(),
+		});
+
+		return { code };
 	}
 }

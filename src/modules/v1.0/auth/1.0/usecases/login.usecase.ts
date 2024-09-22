@@ -79,14 +79,14 @@ export class LoginUseCase {
 					TOKEN_INVALID,
 					user.id,
 				);
-				await this.helper.logAuthHistory(
+				const { code } = await this.helper.setCode(
 					req,
+					user.id,
+					api_key_id,
 					geo,
 					agent,
-					'LOGIN_FAILED',
-					user.id,
 				);
-				throw new Error('Code Expired.');
+				return { code: code };
 			}
 
 			await this.helper.logAuthHistory(
