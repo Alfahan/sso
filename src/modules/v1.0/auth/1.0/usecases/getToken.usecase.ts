@@ -25,8 +25,14 @@ export class GetTokenUseCase {
 		const agent = useragent.parse(req.headers['user-agent']);
 		const findCode = await this.repository.findCode('auth_codes', code);
 
+		if (!findCode) {
+			throw new UnauthorizedException(
+				'For security reasons, your session has ended. Please log in again to continue',
+			);
+		}
+
 		// Check if code is valid and not expired
-		if (!findCode || new Date() > findCode.expires_at) {
+		if (new Date() > findCode.expires_at) {
 			await this.handleFailedAttempt(findCode);
 			await this.helper.logAuthHistory(
 				req,
@@ -35,7 +41,7 @@ export class GetTokenUseCase {
 				'LOGIN_SUCCESS',
 				findCode.user_id,
 			);
-			throw new UnauthorizedException('Invalid or expired code.');
+			throw new UnauthorizedException('Expired code.');
 		}
 
 		// Check for existing token
