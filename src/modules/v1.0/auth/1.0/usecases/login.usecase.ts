@@ -74,7 +74,7 @@ export class LoginUseCase {
 				await this.repository.updateCodeStatus(
 					'auth_codes',
 					TOKEN_INVALID,
-					user.id,
+					existingCode.id,
 				);
 				const { code } = await this.helper.setCode(
 					req,

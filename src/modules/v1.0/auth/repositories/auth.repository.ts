@@ -748,7 +748,7 @@ export class AuthRepository {
 		status: string,
 		id: string,
 	): Promise<void> {
-		const query = `UPDATE ${table} SET status = $1 WHERE user_id = $2`;
+		const query = `UPDATE ${table} SET status = $1 WHERE id = $2`;
 		const values = [status, id];
 
 		try {
@@ -763,12 +763,13 @@ export class AuthRepository {
 	async findCode(table: string, code: string): Promise<any> {
 		const query = `SELECT 
             ac.id as ac_id, 
-            ac.code, 
+			ac.status,
+            ac.code,
             ac.expires_at, 
             u.id as user_id,
 			u.email as email
         FROM ${table} ac left join users u on ac.user_id = u.id WHERE 
-        ac.code=$1 
+        ac.code=$1 AND ac.status='VALID'
         ORDER BY ac.expires_at DESC LIMIT 1`;
 		const values = [code];
 

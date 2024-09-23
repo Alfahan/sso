@@ -112,7 +112,7 @@ export class GetTokenUseCase {
 			await this.repository.updateCodeStatus(
 				'auth_codes',
 				TOKEN_INVALID,
-				findCode.user_id,
+				findCode.ac_id,
 			);
 		}
 	}
