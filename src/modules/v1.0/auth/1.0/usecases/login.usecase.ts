@@ -70,6 +70,8 @@ export class LoginUseCase {
 			},
 		);
 
+		console.log(existingCode);
+
 		if (existingCode) {
 			if (existingCode.expires_at < currentTime) {
 				await this.repository.updateCodeStatus(
