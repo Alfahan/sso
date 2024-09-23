@@ -44,7 +44,6 @@ export class GetTokenUseCase {
 			{
 				user_id: findCode.user_id,
 				api_key_id,
-				ip_origin: req.ip,
 				geolocation: geo
 					? `${geo.city}, ${geo.region}, ${geo.country}`
 					: 'Unknown',

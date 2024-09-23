@@ -59,7 +59,6 @@ export class LoginUseCase {
 			{
 				user_id: user.id,
 				api_key_id,
-				ip_origin: req.ip,
 				geolocation: geo
 					? `${geo.city}, ${geo.region}, ${geo.country}`
 					: 'Unknown',
@@ -69,8 +68,6 @@ export class LoginUseCase {
 				device: agent.device.toString(),
 			},
 		);
-
-		console.log(existingCode);
 
 		if (existingCode) {
 			if (existingCode.expires_at < currentTime) {

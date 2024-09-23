@@ -257,11 +257,10 @@ export class AuthRepository {
 	 * @returns {Promise<string | null>} - A promise that resolves to the token if found, or null if not found.
 	 */
 	async cekValidateToken(table: string, payload: any): Promise<any | null> {
-		const query = `SELECT id, token, refresh_token, status FROM ${table} WHERE user_id=$1 AND ip_origin=$2 AND geolocation=$3 AND country=$4 AND browser=$5 AND os_type=$6 AND device=$7 AND api_key_id=$8 ORDER BY token DESC LIMIT 1`;
+		const query = `SELECT id, token, refresh_token, status FROM ${table} WHERE user_id=$1 AND geolocation=$2 AND country=$3 AND browser=$4 AND os_type=$5 AND device=$6 AND api_key_id=$7 ORDER BY token DESC LIMIT 1`;
 
 		const values = [
 			payload.user_id,
-			payload.ip_origin,
 			payload.geolocation,
 			payload.country,
 			payload.browser,
@@ -722,11 +721,10 @@ export class AuthRepository {
 	}
 
 	async cekValidateCode(table: string, payload: any): Promise<any | null> {
-		const query = `SELECT id, code, status, expires_at FROM ${table} WHERE user_id=$1 AND ip_origin=$2 AND geolocation=$3 AND country=$4 AND browser=$5 AND os_type=$6 AND device=$7 AND api_key_id=$8 ORDER BY expires_at DESC LIMIT 1`;
+		const query = `SELECT id, code, status, expires_at FROM ${table} WHERE user_id=$1 AND geolocation=$2 AND country=$3 AND browser=$4 AND os_type=$5 AND device=$6 AND api_key_id=$7 ORDER BY expires_at DESC LIMIT 1`;
 
 		const values = [
 			payload.user_id,
-			payload.ip_origin,
 			payload.geolocation,
 			payload.country,
 			payload.browser,
