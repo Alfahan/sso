@@ -722,7 +722,7 @@ export class AuthRepository {
 	}
 
 	async cekValidateCode(table: string, payload: any): Promise<any | null> {
-		const query = `SELECT id, code, status, expires_at FROM ${table} WHERE user_id=$1 AND ip_origin=$2 AND geolocation=$3 AND country=$4 AND browser=$5 AND os_type=$6 AND device=$7 AND api_key_id=$8 LIMIT 1`;
+		const query = `SELECT id, code, status, expires_at FROM ${table} WHERE user_id=$1 AND ip_origin=$2 AND geolocation=$3 AND country=$4 AND browser=$5 AND os_type=$6 AND device=$7 AND api_key_id=$8 ORDER BY expires_at DESC LIMIT 1`;
 
 		const values = [
 			payload.user_id,
