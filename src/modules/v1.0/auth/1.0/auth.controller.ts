@@ -454,4 +454,28 @@ export class AuthControllerV10 {
 			); // Throwing internal server error
 		}
 	}
+
+	@Post('validate-code')
+	async validationCode(
+		@Res() res: Response,
+		@Req() req: Request,
+	): Promise<Response> {
+		try {
+			const data = await this.validateUseCase.validateCode(res, req); // Calling reset password logic
+			return ApiResponse.success(res, data, successCode.SCDTDT0014); // Returning success response
+		} catch (error) {
+			if (error instanceof Error) {
+				return ApiResponse.fail(
+					res,
+					error.message,
+					errorCode.ERDTTD0002,
+					error.stack,
+				); // Handling reset password error
+			}
+			throw new HttpException(
+				error.message,
+				HttpStatus.INTERNAL_SERVER_ERROR,
+			); // Throwing internal server error
+		}
+	}
 }

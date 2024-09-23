@@ -86,7 +86,13 @@ export const ssoSuccessMessageCode = {
 	/*** Reset Password success */
 	SCDTDT0013: {
 		httpCode: HttpStatus.CREATED, // HTTP status code indicating that the request has been fulfilled and has resulted in the creation of a resource.
-		fabdCode: 'SCDTDT0010', // A unique code representing the success scenario.
+		fabdCode: 'SCDTDT0013', // A unique code representing the success scenario.
 		message: 'Reset Password success.', // Description of the success scenario.
+	},
+	/*** Check Expired Code */
+	SCDTDT0014: {
+		httpCode: HttpStatus.CREATED, // HTTP status code indicating that the request has been fulfilled and has resulted in the creation of a resource.
+		fabdCode: 'SCDTDT0014', // A unique code representing the success scenario.
+		message: 'Check Expired Code success.', // Description of the success scenario.
 	},
 };

@@ -1,6 +1,9 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { AuthRepository } from '../../repositories/auth.repository'; // Importing the AuthRepository
-import { Request } from 'express'; // Importing Request from express for type safety
+import { Request, Response } from 'express'; // Importing Request from express for type safety
+import * as useragent from 'useragent';
+import * as geoip from 'geoip-lite';
+import { TOKEN_INVALID } from '@app/const';
 
 /**
  * @service ValidateUseCase
@@ -131,5 +134,43 @@ export class ValidateUseCase {
 
 		// Return true if username is found, otherwise false
 		return find !== undefined;
+	}
+
+	async validateCode(
+		res: Response,
+		req: Request,
+	): Promise<{ is_expired: boolean }> {
+		const { code } = req.body;
+		const currentTime = new Date();
+		const api_key_id = res.locals.api_key_id;
+		const geo = geoip.lookup(req.ip);
+		const agent = useragent.parse(req.headers['user-agent']);
+
+		const find = await this.repository.checkValidateCodeI('auth_codes', {
+			code: code,
+			api_key_id,
+			geolocation: geo
+				? `${geo.city}, ${geo.region}, ${geo.country}`
+				: 'Unknown',
+			country: geo?.country || 'Unknown',
+			browser: agent.toAgent(),
+			os_type: agent.os.toString(),
+			device: agent.device.toString(),
+		});
+
+		if (find && find.expires_at < currentTime) {
+			await this.repository.updateCodeStatus(
+				'auth_codes',
+				TOKEN_INVALID,
+				find.id,
+			);
+			return {
+				is_expired: true,
+			};
+		}
+
+		return {
+			is_expired: false,
+		};
 	}
 }

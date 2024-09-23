@@ -782,4 +782,27 @@ export class AuthRepository {
 			console.error('Error retrieving last OTP:', error);
 		}
 	}
+
+	async checkValidateCodeI(table: string, payload: any): Promise<any | null> {
+		const query = `SELECT id, code, status, expires_at FROM ${table} WHERE code=$1 AND geolocation=$2 AND country=$3 AND browser=$4 AND os_type=$5 AND device=$6 AND api_key_id=$7 ORDER BY expires_at DESC LIMIT 1`;
+
+		const values = [
+			payload.code,
+			payload.geolocation,
+			payload.country,
+			payload.browser,
+			payload.os_type,
+			payload.device,
+			payload.api_key_id,
+		];
+
+		try {
+			// Execute the query to retrieve the latest token
+			const result = await this.dataSource.query(query, values);
+			return result[0];
+		} catch (error) {
+			// Log any errors that occur during the database query
+			console.error('Error retrieving token:', error);
+		}
+	}
 }
