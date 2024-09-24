@@ -44,31 +44,17 @@ export class AuthHelper {
 	}
 
 	/**
-	 * Sends an OTP verification email to the user's email address.
+	 * Metode utilitas untuk mengurangi sejumlah menit dari tanggal yang diberikan.
 	 *
-	 * @param {string} email - The recipient's email address where the OTP will be sent.
-	 * @param {string} otpCode - The OTP code that will be sent to the user.
-	 *
-	 * This function uses Nodemailer to send an OTP verification email
-	 * to the provided email address. The HTML email template is stored in the `assets`
-	 * folder and will be rendered with the provided data (in this case, the OTP code).
-	 *
-	 * Example usage:
-	 *
-	 * ```typescript
-	 * sendOtpVerification('user@example.com', '123456');
-	 * ```
-	 *
-	 * The email template should contain a placeholder for the `otpCode`,
-	 * for example in the HTML template:
-	 *
-	 * ```html
-	 * <p>Your OTP code is: {{otpCode}}</p>
-	 * ```
-	 *
-	 * If there is an error while sending the email, it will be handled and logged
-	 * using `console.error`.
+	 * @param {Date} date - Tanggal asli yang ingin dikurangi menitnya.
+	 * @param {number} minutes - Jumlah menit yang ingin dikurangi.
+	 * @returns {Date} - Tanggal baru setelah dikurangi sejumlah menit.
 	 */
+	subtractMinutesFromDate(date: Date, minutes: number): Date {
+		const newDate = new Date(date.getTime() - minutes * 60000);
+		return newDate;
+	}
+
 	sendOtpVerification(email: string, otpCode: string): void {
 		const mailOptions = {
 			from: 'sso.fabdigital@gmail.com',

@@ -71,6 +71,11 @@ export class GetTokenUseCase {
 				'LOGIN',
 				findCode.user_id,
 			);
+			await this.repository.updateTokenStatus(
+				'user_sessions',
+				LOGGED_IN,
+				existingToken.id,
+			);
 			return {
 				access_token: existingToken.token,
 				refresh_token: existingToken.refresh_token,

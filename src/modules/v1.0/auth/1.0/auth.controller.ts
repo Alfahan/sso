@@ -341,7 +341,7 @@ export class AuthControllerV10 {
 		@Req() req: Request, // Injecting the Express request object
 	): Promise<Response> {
 		try {
-			await this.logoutUseCase.logout(req); // Calling logout logic
+			await this.logoutUseCase.logout(res, req); // Calling logout logic
 			return ApiResponse.success(res, null, successCode.SCDTDT0007); // Returning success response
 		} catch (error) {
 			if (error instanceof Error) {

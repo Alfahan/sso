@@ -54,7 +54,7 @@ export class LoginUseCase {
 		api_key_id: string,
 	): Promise<{ code: string }> {
 		const currentTime = new Date();
-		const existingCode = await this.repository.cekValidateCode(
+		const existingCode = await this.repository.checkValidateCode(
 			'auth_codes',
 			{
 				user_id: user.id,
