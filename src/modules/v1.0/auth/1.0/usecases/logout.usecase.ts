@@ -24,7 +24,9 @@ export class LogoutUseCase {
 
 		const token = authHeader.split(' ')[1];
 
-		const payload = this.jwtService.verify(token);
+		const payload = this.jwtService.verify(token, {
+			ignoreExpiration: true,
+		});
 		const id = CryptoTs.decryptWithAes(
 			'AES_256_CBC',
 			Buffer.from(payload.sub),
