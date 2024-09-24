@@ -568,7 +568,7 @@ export class AuthRepository {
 	}
 
 	async findSession(table: string, payload): Promise<any | null> {
-		const query = `SELECT id, user_id FROM ${table} WHERE id=$1 AND api_key_id=$2`;
+		const query = `SELECT id, user_id FROM ${table} WHERE id=$1 AND api_key_id=$2 LIMIT 1`;
 
 		const values = [payload.id, payload.api_key_id];
 
