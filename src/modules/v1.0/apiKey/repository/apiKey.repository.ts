@@ -95,7 +95,7 @@ export class ApiKeyRepository {
 	 * });
 	 */
 	async findApiKeyMid(table: string, payload: any): Promise<any> {
-		const query = `SELECT id, key FROM ${table} WHERE key=$1 AND status=$2 ORDER BY key DESC LIMIT 1`;
+		const query = `SELECT key, created_at FROM ${table} WHERE key=$1 AND status=$2 ORDER BY created_at DESC LIMIT 1`;
 		const values = [payload.api_key, payload.status];
 		try {
 			const result = await this.dataSource.query(query, values);
