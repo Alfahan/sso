@@ -1,8 +1,5 @@
 import { DataSource } from 'typeorm'; // Importing DataSource class from TypeORM to configure database connection
-import { config } from 'dotenv'; // Importing config function from dotenv to load environment variables
 import { DB_HOST, DB_NAME, DB_PASS, DB_PORT, DB_USER } from '@app/const'; // Importing database configuration from constants
-
-config(); // Load environment variables from a .env file
 
 // Creating and exporting a new instance of DataSource configured for PostgreSQL
 export const AppDataSource = new DataSource({

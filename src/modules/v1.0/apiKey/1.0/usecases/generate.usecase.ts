@@ -5,10 +5,17 @@ import { API_KEY_VALID } from '@app/const';
 import * as crypto from 'crypto';
 import { generateRandomString } from '../apikey.helper';
 import { validateGenerate } from '../apikey.validate';
+import Redis from 'ioredis';
+import { RedisLibs } from '@app/libraries/redis';
 
 @Injectable()
 export class GenerateApiKeyUseCase {
-	constructor(private readonly repository: ApiKeyRepository) {}
+	private redisLib: RedisLibs;
+
+	constructor(private readonly repository: ApiKeyRepository) {
+		const redisClient = new Redis();
+		this.redisLib = new RedisLibs(redisClient);
+	}
 
 	/**
 	 * createApiKey
@@ -21,6 +28,11 @@ export class GenerateApiKeyUseCase {
 		validateGenerate(req.body);
 
 		const { name, ip_origin, domain } = req.body;
+
+		const cachedApiKey = await this.redisLib.get(`api_key:${name}`);
+		if (cachedApiKey) {
+			return JSON.parse(cachedApiKey);
+		}
 
 		// Check if a valid API key already exists for the third party
 		const cekApiKey = await this.repository.findApiKey('api_keys', {
@@ -48,11 +60,27 @@ export class GenerateApiKeyUseCase {
 				status: API_KEY_VALID,
 			});
 
+			await this.redisLib.set(
+				`api_key:${name}`,
+				JSON.stringify({
+					name: name,
+					ip_origin: ip_origin,
+					domain: domain,
+					key: hashedApiKey,
+					status: API_KEY_VALID,
+				}),
+			);
+
 			// Return the newly saved API key
 			return saveApiKey;
 		}
 
 		// Return the existing valid API key if found
+		await this.redisLib.set(
+			`api_key:${name}`,
+			JSON.stringify(cekApiKey),
+			null,
+		);
 		return cekApiKey;
 	}
 }

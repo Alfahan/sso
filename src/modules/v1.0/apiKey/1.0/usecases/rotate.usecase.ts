@@ -5,10 +5,17 @@ import { API_KEY_VALID } from '@app/const';
 import * as crypto from 'crypto';
 import { generateRandomString } from '../apikey.helper';
 import { validateRotateAndRevoke } from '../apikey.validate';
+import { RedisLibs } from '@app/libraries/redis';
+import Redis from 'ioredis';
 
 @Injectable()
 export class RotateApiKeyUseCase {
-	constructor(private readonly repository: ApiKeyRepository) {}
+	private redisLib: RedisLibs;
+
+	constructor(private readonly repository: ApiKeyRepository) {
+		const redisClient = new Redis();
+		this.redisLib = new RedisLibs(redisClient);
+	}
 
 	/**
 	 * recreateApiKey
@@ -42,10 +49,21 @@ export class RotateApiKeyUseCase {
 
 		// Update the API key in the database
 		const rotateApiKey = await this.repository.updateApiKey('api_keys', {
-			name: name,
+			id: cekApiKey.id,
 			key: hashedApiKey,
 			status: API_KEY_VALID,
 		});
+
+		await this.redisLib.set(
+			`api_keys:${name}`,
+			JSON.stringify({
+				name: rotateApiKey[0].name,
+				ip_origin: rotateApiKey[0].ip_origin,
+				domain: rotateApiKey[0].domain,
+				key: rotateApiKey[0].key,
+				status: rotateApiKey[0].status,
+			}),
+		);
 
 		// Return the updated API key record
 		return rotateApiKey[0];

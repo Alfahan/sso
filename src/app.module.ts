@@ -6,6 +6,8 @@ import { TodoModule } from './modules/v1.0/todos/1.0/todo.module';
 import { AuthModuleV10 } from './modules/v1.0/auth/1.0/auth.module';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ApiKeyModuleV10 } from './modules/v1.0/apiKey/1.0/apiKey.module';
+import { RedisModule } from '@nestjs-modules/ioredis';
+import { RedisConfig } from './configs/redis.config';
 
 @Module({
 	imports: [
@@ -34,6 +36,16 @@ import { ApiKeyModuleV10 } from './modules/v1.0/apiKey/1.0/apiKey.module';
 		TypeOrmModule.forRoot({
 			...AppDataSource.options, // Spread the TypeORM configuration options
 		}),
+		// Redis Config
+		RedisModule.forRootAsync({
+			useFactory: () => ({
+				type: 'single', // Type of Redis connection
+				host: RedisConfig.getRedisConfig().host, // Use host from RedisConfig
+				port: RedisConfig.getRedisConfig().port, // Use port from RedisConfig
+				password: RedisConfig.getRedisConfig().password, // Use password from RedisConfig if available
+			}),
+		}),
+
 		// Import Todo module for managing todo items
 		TodoModule,
 		// Import Auth module for handling authentication

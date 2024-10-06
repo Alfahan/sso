@@ -68,7 +68,7 @@ export class ApiKeyRepository {
 	 * });
 	 */
 	async findApiKey(table: string, payload: any): Promise<any> {
-		const query = `SELECT name, key, ip_origin, domain, status FROM ${table} WHERE name=$1 AND status=$2 ORDER BY name DESC LIMIT 1`;
+		const query = `SELECT id, name, key, ip_origin, domain, status, created_at FROM ${table} WHERE name=$1 AND status=$2 ORDER BY created_at DESC LIMIT 1`;
 		const values = [payload.name, payload.status];
 		try {
 			const result = await this.dataSource.query(query, values);
@@ -125,6 +125,7 @@ export class ApiKeyRepository {
 	async updateApiKey(
 		table: string,
 		updatedFields: {
+			id?: string;
 			name?: string;
 			key?: string;
 			status?: string;
@@ -154,14 +155,14 @@ export class ApiKeyRepository {
 		const query = `
 			UPDATE ${table}
 			SET ${setClause}
-			WHERE name = $${index++}
+			WHERE id = $${index++}
 			RETURNING *;
 		`;
 
 		try {
 			const result = await this.dataSource.query(query, [
 				...values,
-				updatedFields.name,
+				updatedFields.id,
 			]);
 			return result[0] || null;
 		} catch (error) {
