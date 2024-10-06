@@ -7,6 +7,7 @@ import { generateRandomString } from '../apikey.helper';
 import { validateGenerate } from '../apikey.validate';
 import Redis from 'ioredis';
 import { RedisLibs } from '@app/libraries/redis';
+import CryptoTs from 'pii-agent-ts';
 
 @Injectable()
 export class GenerateApiKeyUseCase {
@@ -31,7 +32,12 @@ export class GenerateApiKeyUseCase {
 
 		const cachedApiKey = await this.redisLib.get(`api_key:${name}`);
 		if (cachedApiKey) {
-			return JSON.parse(cachedApiKey);
+			return JSON.parse(
+				CryptoTs.decryptWithAes(
+					'AES_256_CBC',
+					Buffer.from(cachedApiKey),
+				),
+			);
 		}
 
 		// Check if a valid API key already exists for the third party
@@ -51,24 +57,24 @@ export class GenerateApiKeyUseCase {
 				.update(rdmStr)
 				.digest('base64');
 
-			// Save the new API key in the database
-			const saveApiKey = await this.repository.saveApiKey('api_keys', {
+			const payload = {
 				name: name,
 				ip_origin: ip_origin,
 				domain: domain,
 				key: hashedApiKey,
 				status: API_KEY_VALID,
-			});
+			};
+
+			// Save the new API key in the database
+			const saveApiKey = await this.repository.saveApiKey(
+				'api_keys',
+				payload,
+			);
 
 			await this.redisLib.set(
 				`api_key:${name}`,
-				JSON.stringify({
-					name: name,
-					ip_origin: ip_origin,
-					domain: domain,
-					key: hashedApiKey,
-					status: API_KEY_VALID,
-				}),
+				CryptoTs.encryptWithAes('AES_256_CBC', JSON.stringify(payload))
+					.Value,
 			);
 
 			// Return the newly saved API key
@@ -78,8 +84,8 @@ export class GenerateApiKeyUseCase {
 		// Return the existing valid API key if found
 		await this.redisLib.set(
 			`api_key:${name}`,
-			JSON.stringify(cekApiKey),
-			null,
+			CryptoTs.encryptWithAes('AES_256_CBC', JSON.stringify(cekApiKey))
+				.Value,
 		);
 		return cekApiKey;
 	}

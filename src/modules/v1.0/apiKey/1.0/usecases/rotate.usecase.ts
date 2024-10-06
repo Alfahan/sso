@@ -7,6 +7,7 @@ import { generateRandomString } from '../apikey.helper';
 import { validateRotateAndRevoke } from '../apikey.validate';
 import { RedisLibs } from '@app/libraries/redis';
 import Redis from 'ioredis';
+import CryptoTs from 'pii-agent-ts';
 
 @Injectable()
 export class RotateApiKeyUseCase {
@@ -54,15 +55,17 @@ export class RotateApiKeyUseCase {
 			status: API_KEY_VALID,
 		});
 
+		const payloadRedis = {
+			name: rotateApiKey[0].name,
+			ip_origin: rotateApiKey[0].ip_origin,
+			domain: rotateApiKey[0].domain,
+			key: rotateApiKey[0].key,
+			status: rotateApiKey[0].status,
+		};
 		await this.redisLib.set(
 			`api_keys:${name}`,
-			JSON.stringify({
-				name: rotateApiKey[0].name,
-				ip_origin: rotateApiKey[0].ip_origin,
-				domain: rotateApiKey[0].domain,
-				key: rotateApiKey[0].key,
-				status: rotateApiKey[0].status,
-			}),
+			CryptoTs.encryptWithAes('AES_256_CBC', JSON.stringify(payloadRedis))
+				.Value,
 		);
 
 		// Return the updated API key record
