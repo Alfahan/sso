@@ -4,32 +4,22 @@ import { Request } from 'express';
 import { API_KEY_VALID } from '@app/const';
 import * as crypto from 'crypto';
 import { generateRandomString } from '../apikey.helper';
+import { validateRotateAndRevoke } from '../apikey.validate';
 
-/**
- * @service RotateApiKeyUseCase
- * @description
- * This service handles the logic for rotating (recreating) an API key for a given third party. It verifies if the current API key exists,
- * generates a new one, hashes it, and updates the API key record in the database.
- */
 @Injectable()
 export class RotateApiKeyUseCase {
 	constructor(private readonly repository: ApiKeyRepository) {}
 
 	/**
-	 * @method recreateApiKey
-	 * @description
-	 * Rotates (recreates) the API key for a given third party by generating a new random key, hashing it, and updating the record in the database.
-	 *
-	 * @param {Request} req - The HTTP request object containing the third party name in the body.
-	 * @returns {Promise<any>} - Returns the updated API key record.
-	 *
-	 * @throws {BadRequestException} - Throws an exception if the API key for the provided third party name is not found.
-	 *
-	 * @example
-	 * POST /api-key/rotate
-	 * Body: { "name": "example" }
+	 * recreateApiKey
+	 * @author telkomdev-alfahan
+	 * @date 2024-10-06
+	 * @param { Request } req
+	 * @returns { Promise<any> }
 	 */
 	async recreateApiKey(req: Request): Promise<any> {
+		validateRotateAndRevoke(req.body);
+
 		const { name } = req.body;
 
 		// Check if the API key exists

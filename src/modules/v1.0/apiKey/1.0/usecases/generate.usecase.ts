@@ -4,35 +4,22 @@ import { ApiKeyRepository } from '../../repository/apiKey.repository';
 import { API_KEY_VALID } from '@app/const';
 import * as crypto from 'crypto';
 import { generateRandomString } from '../apikey.helper';
+import { validateGenerate } from '../apikey.validate';
 
-/**
- * @service GenerateApiKeyUseCase
- * @description
- * This service handles the generation of a new API key. It checks if an existing valid API key is associated with the
- * provided third party, and if not, generates a new random API key, hashes it using SHA-256, and saves it to the database.
- */
 @Injectable()
 export class GenerateApiKeyUseCase {
 	constructor(private readonly repository: ApiKeyRepository) {}
 
 	/**
-	 * @method createApiKey
-	 * @description
-	 * Generates a new API key for a given third party name. If an existing valid API key is found, it returns that key.
-	 * Otherwise, it creates a new key, hashes it using SHA-256, and stores it in the database.
-	 *
-	 * @param {Request} req - The HTTP request object containing the third party name in the body.
-	 * @returns {Promise<any>} - Returns the newly created API key or the existing valid API key.
-	 *
-	 * @example
-	 * POST /api-key/generate
-	 * Body: {
-			"name": "example",
-			"ip_origin": "127.0.0.1",
-			"domain": "localhost:3000",
-		}
+	 * createApiKey
+	 * @author telkomdev-alfahan
+	 * @date 2024-10-06
+	 * @param { Request } req
+	 * @returns { Promise<any> }
 	 */
 	async createApiKey(req: Request): Promise<any> {
+		validateGenerate(req.body);
+
 		const { name, ip_origin, domain } = req.body;
 
 		// Check if a valid API key already exists for the third party

@@ -2,32 +2,22 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { ApiKeyRepository } from '../../repository/apiKey.repository';
 import { API_KEY_INVALID, API_KEY_VALID } from '@app/const';
 import { Request } from 'express';
+import { validateRotateAndRevoke } from '../apikey.validate';
 
-/**
- * @service RevokeApiKeyUseCase
- * @description
- * This service handles the logic for revoking an API key by marking it as invalid in the database. It verifies if the current API key exists,
- * and then updates its status to `API_KEY_INVALID`.
- */
 @Injectable()
 export class RevokeApiKeyUseCase {
 	constructor(private readonly repository: ApiKeyRepository) {}
 
 	/**
-	 * @method removeApiKey
-	 * @description
-	 * Revokes the API key for a given third party by setting its status to `API_KEY_INVALID`.
-	 *
-	 * @param {Request} req - The HTTP request object containing the third party name in the body.
-	 * @returns {Promise<any>} - Returns the updated API key record after being revoked.
-	 *
-	 * @throws {BadRequestException} - Throws an exception if the API key for the provided third party name is not found.
-	 *
-	 * @example
-	 * DELETE /api-key/revoke
-	 * Body: { "name": "example" }
+	 * removeApiKey
+	 * @author telkomdev-alfahan
+	 * @date 2024-10-06
+	 * @param { Request } req
+	 * @returns { Promise<any> }
 	 */
 	async removeApiKey(req: Request): Promise<any> {
+		validateRotateAndRevoke(req.body);
+
 		const { name } = req.body;
 
 		// Check if the API key exists

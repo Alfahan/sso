@@ -1,12 +1,9 @@
 /**
- * Generates a random string of a specified length using uppercase, lowercase letters, numbers, and special characters.
- *
- * @param {number} length - The length of the random string to be generated.
- * @returns {Promise<string>} - A promise that resolves to the generated random string.
- *
- * @example
- * const randomString = await generateRandomString(16);
- * console.log(randomString); // Output: random string of 16 characters
+ * generateRandomString
+ * @author telkomdev-alfahan
+ * @date 2024-10-06
+ * @param { number } length
+ * @returns { Promise<string> }
  */
 export async function generateRandomString(length: number): Promise<string> {
 	const characters =
