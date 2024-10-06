@@ -18,11 +18,12 @@ export class AuthHelper {
 	) {}
 
 	/**
-	 * Validates the given plain password against the hashed password stored in the database.
-	 *
-	 * @param {string} plainPassword - The plain password provided by the user.
-	 * @param {string} hashedPassword - The hashed password stored in the database.
-	 * @returns {Promise<boolean>} - A promise that resolves to a boolean indicating whether the password is valid.
+	 * isPasswordValid
+	 * @author telkomdev-alfahan
+	 * @date 2024-10-06
+	 * @param { string } plainPassword
+	 * @param { string } hashedPassword
+	 * @returns { Promise<boolean> }
 	 */
 	async isPasswordValid(
 		plainPassword: string,
@@ -32,11 +33,12 @@ export class AuthHelper {
 	}
 
 	/**
-	 * Utility method to add a specified number of minutes to a given date.
-	 *
-	 * @param {Date} date - The original date to add minutes to.
-	 * @param {number} minutes - The number of minutes to add.
-	 * @returns {Date} - The new date with the minutes added.
+	 * addMinutesToDate
+	 * @author telkomdev-alfahan
+	 * @date 2024-10-06
+	 * @param { Date } date
+	 * @param { number } minutes
+	 * @returns { Date }
 	 */
 	addMinutesToDate(date: Date, minutes: number): Date {
 		const newDate = new Date(date.getTime() + minutes * 60000);
@@ -44,17 +46,26 @@ export class AuthHelper {
 	}
 
 	/**
-	 * Metode utilitas untuk mengurangi sejumlah menit dari tanggal yang diberikan.
-	 *
-	 * @param {Date} date - Tanggal asli yang ingin dikurangi menitnya.
-	 * @param {number} minutes - Jumlah menit yang ingin dikurangi.
-	 * @returns {Date} - Tanggal baru setelah dikurangi sejumlah menit.
+	 * subtractMinutesFromDate
+	 * @author telkomdev-alfahan
+	 * @date 2024-10-06
+	 * @param { Date } date
+	 * @param { number } minutes
+	 * @returns { Date }
 	 */
 	subtractMinutesFromDate(date: Date, minutes: number): Date {
 		const newDate = new Date(date.getTime() - minutes * 60000);
 		return newDate;
 	}
 
+	/**
+	 * sendOtpVerification
+	 * @author telkomdev-alfahan
+	 * @date 2024-10-06
+	 * @param { string } email
+	 * @param { string } otpCode
+	 * @returns { void }
+	 */
 	sendOtpVerification(email: string, otpCode: string): void {
 		const mailOptions = {
 			from: 'sso.fabdigital@gmail.com',
@@ -73,6 +84,13 @@ export class AuthHelper {
 		Notification.sendMail(mailOptions).catch(console.error);
 	}
 
+	/**
+	 * sendNewLoginAlert
+	 * @author telkomdev-alfahan
+	 * @date 2024-10-06
+	 * @param { any } payload
+	 * @returns { void }
+	 */
 	sendNewLoginAlert(payload: any): void {
 		const mailOptions = {
 			from: 'sso.fabdigital@gmail.com',
@@ -96,17 +114,12 @@ export class AuthHelper {
 	}
 
 	/**
-	 * Sends the OTP code to the user via a messaging service.
-	 *
-	 * This method uses the `notif-agent-ts` library to send a WhatsApp message with the OTP code.
-	 *
-	 * @param phone_number - The phone number to which the OTP will be sent.
-	 * @param otpCode - The OTP code to be sent to the user.
-	 * @returns Promise<void> - Logs the result of the messaging operation.
-	 * @throws Error - Throws an error if the message could not be sent.
-	 *
-	 * @example
-	 * await sendOtpToUser('+1234567890', '123456');
+	 * sendOtpToUser
+	 * @author telkomdev-alfahan
+	 * @date 2024-10-06
+	 * @param { string } phone_number
+	 * @param { string } otpCode
+	 * @returns { Promise<void> }
 	 */
 	async sendOtpToUser(phone_number: string, otpCode: string): Promise<void> {
 		const messageData = {
@@ -155,6 +168,13 @@ export class AuthHelper {
 		}
 	}
 
+	/**
+	 * validateDomain
+	 * @author telkomdev-alfahan
+	 * @date 2024-10-06
+	 * @param { string } email
+	 * @returns { void }
+	 */
 	validateDomain(email: string): void {
 		const forbiddenDomains = [
 			'example.com',
@@ -174,6 +194,13 @@ export class AuthHelper {
 		}
 	}
 
+	/**
+	 * checkRateLimit
+	 * @author telkomdev-alfahan
+	 * @date 2024-10-06
+	 * @param { string } user_id
+	 * @returns { Promise<void> }
+	 */
 	async checkRateLimit(user_id: string): Promise<void> {
 		const attempt = await this.repository.findFailedLoginAttempts(
 			'users',
@@ -198,6 +225,13 @@ export class AuthHelper {
 		}
 	}
 
+	/**
+	 * incrementFailedAttempts
+	 * @author telkomdev-alfahan
+	 * @date 2024-10-06
+	 * @param { string } user_id
+	 * @returns { Promise<void> }
+	 */
 	async incrementFailedAttempts(user_id: string): Promise<void> {
 		const attempt = await this.repository.findFailedLoginAttempts(
 			'users',
@@ -217,6 +251,13 @@ export class AuthHelper {
 		);
 	}
 
+	/**
+	 * resetFailedAttempts
+	 * @author telkomdev-alfahan
+	 * @date 2024-10-06
+	 * @param { string } user_id
+	 * @returns { Promise<void> }
+	 */
 	async resetFailedAttempts(user_id: string): Promise<void> {
 		const attempt = await this.repository.findFailedLoginAttempts(
 			'users',
@@ -236,10 +277,26 @@ export class AuthHelper {
 		);
 	}
 
+	/**
+	 * generateOtpCode
+	 * @author telkomdev-alfahan
+	 * @date 2024-10-06
+	 * @returns { string }
+	 */
 	generateOtpCode(): string {
 		return Math.floor(100000 + Math.random() * 900000).toString(); // Generates a 6-digit OTP
 	}
 
+	/**
+	 * logAuthHistory
+	 * @author telkomdev-alfahan
+	 * @date 2024-10-06
+	 * @param { Request } req
+	 * @param { any } geo
+	 * @param { any } agent
+	 * @param { string } action
+	 * @param { string } user_id
+	 */
 	async logAuthHistory(
 		req: Request,
 		geo: any,
@@ -261,6 +318,11 @@ export class AuthHelper {
 		});
 	}
 
+	/**
+	 * generateTokens
+	 * @author telkomdev-alfahan
+	 * @date 2024-10-06
+	 */
 	generateTokens() {
 		const uuid = uuidv4();
 		const encryptUuid = CryptoTs.encryptWithAes('AES_256_CBC', uuid);
@@ -274,6 +336,17 @@ export class AuthHelper {
 		return { accessToken, refreshToken, uuid };
 	}
 
+	/**
+	 * setCode
+	 * @author telkomdev-alfahan
+	 * @date 2024-10-06
+	 * @param { Request } req
+	 * @param { string } user_id
+	 * @param { string } api_key_id
+	 * @param { any } geo
+	 * @param { any } agent
+	 * @returns { Promise<{ code: string }> }
+	 */
 	async setCode(
 		req: Request,
 		user_id: string,
