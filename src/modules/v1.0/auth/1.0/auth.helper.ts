@@ -1,5 +1,4 @@
 import * as bcrypt from 'bcrypt';
-import * as path from 'path';
 import CryptoTs from 'pii-agent-ts';
 import { v4 as uuidv4 } from 'uuid';
 import Notification from 'notif-agent-ts';
@@ -9,6 +8,7 @@ import { AuthRepository } from '../repositories/auth.repository';
 import { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { TOKEN_VALID } from '@app/const';
+import { generateRandomString } from '@app/libraries/helpers';
 
 @Injectable()
 export class AuthHelper {
@@ -67,21 +67,16 @@ export class AuthHelper {
 	 * @returns { void }
 	 */
 	sendOtpVerification(email: string, otpCode: string): void {
-		const mailOptions = {
-			from: 'sso.fabdigital@gmail.com',
+		const payloadMail = {
 			to: [email],
 			subject: 'OTP Verification',
-			templatePath: path.join(
-				process.cwd(),
-				'assets',
-				'otpVerification.html',
-			),
-			context: {
-				otpCode: otpCode,
+			templateCode: 'sso_otp_verification',
+			data: {
+				otp_code: otpCode,
 			},
 		};
 
-		Notification.sendMail(mailOptions).catch(console.error);
+		Notification.sendMail(payloadMail);
 	}
 
 	/**
@@ -92,16 +87,11 @@ export class AuthHelper {
 	 * @returns { void }
 	 */
 	sendNewLoginAlert(payload: any): void {
-		const mailOptions = {
-			from: 'sso.fabdigital@gmail.com',
+		const payloadMail = {
 			to: [payload.email],
 			subject: 'New Device Login',
-			templatePath: path.join(
-				process.cwd(),
-				'assets',
-				'newDeviceLoginAlert.html',
-			),
-			context: {
+			templateCode: 'sso_new_device_login',
+			data: {
 				browser: payload.browser,
 				device: payload.device,
 				geolocation: payload.geolocation,
@@ -110,7 +100,7 @@ export class AuthHelper {
 			},
 		};
 
-		Notification.sendMail(mailOptions).catch(console.error);
+		Notification.sendMail(payloadMail);
 	}
 
 	/**
@@ -123,7 +113,7 @@ export class AuthHelper {
 	 */
 	async sendOtpToUser(phone_number: string, otpCode: string): Promise<void> {
 		const messageData = {
-			phone_numbers: [phone_number], // The recipient's phone number
+			phone_number: phone_number, // The recipient's phone number
 			message: {
 				type: 'template',
 				template: {
@@ -355,7 +345,7 @@ export class AuthHelper {
 		agent: any,
 	): Promise<{ code: string }> {
 		const currentTime = new Date();
-		const code = this.generateOtpCode();
+		const code = await generateRandomString(48);
 		await this.repository.saveCode('auth_codes', {
 			code,
 			expires_at: this.addMinutesToDate(currentTime, 60),
