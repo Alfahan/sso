@@ -3,11 +3,11 @@ import { Request } from 'express';
 import { ApiKeyRepository } from '../../repository/apiKey.repository';
 import { API_KEY_VALID } from '@app/const';
 import * as crypto from 'crypto';
-import { generateRandomString } from '../apikey.helper';
 import { validateGenerate } from '../apikey.validate';
 import Redis from 'ioredis';
 import { RedisLibs } from '@app/libraries/redis';
 import CryptoTs from 'pii-agent-ts';
+import { generateRandomString } from '@app/libraries/helpers';
 
 @Injectable()
 export class GenerateApiKeyUseCase {

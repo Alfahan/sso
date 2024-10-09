@@ -3,11 +3,11 @@ import { ApiKeyRepository } from '../../repository/apiKey.repository';
 import { Request } from 'express';
 import { API_KEY_VALID } from '@app/const';
 import * as crypto from 'crypto';
-import { generateRandomString } from '../apikey.helper';
 import { validateRotateAndRevoke } from '../apikey.validate';
 import { RedisLibs } from '@app/libraries/redis';
 import Redis from 'ioredis';
 import CryptoTs from 'pii-agent-ts';
+import { generateRandomString } from '@app/libraries/helpers';
 
 @Injectable()
 export class RotateApiKeyUseCase {
