@@ -75,3 +75,8 @@ export const API_KEY_STATIC = process.env.API_KEY_STATIC;
 export const REDIS_HOST = process.env.REDIS_HOST;
 export const REDIS_PORT = process.env.REDIS_PORT;
 export const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
+
+// HCIS
+export const EAI_BASE_URL = process.env.EAI_BASE_URL;
+export const EAI_CLIENT_ID = process.env.EAI_CLIENT_ID;
+export const EAI_CLIENT_SECRET = process.env.EAI_CLIENT_SECRET;
