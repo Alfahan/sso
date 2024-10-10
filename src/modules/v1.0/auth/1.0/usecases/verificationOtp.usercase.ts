@@ -13,20 +13,29 @@ export class VerificationOtpUseCase {
 		private readonly repository: AuthRepository,
 	) {}
 
-	async verification(res: Response, req: Request): Promise<{ code: string }> {
-		const { otp_code } = req.body;
-		const api_key_id = res.locals.api_key_id;
-		const geo = geoip.lookup(req.ip);
-		const agent = useragent.parse(req.headers['user-agent']);
-		const currentTime = new Date();
+	/**
+	 * Verifies the provided OTP code for multi-factor authentication (MFA) and logs the authentication history.
+	 *
+	 * @param {Response} res - The Express response object, containing local variables such as the API key ID.
+	 * @param {Request} req - The Express request object, containing the OTP code and other user details.
+	 * @returns {Promise<{ code: string }>} - Returns a newly generated code if the OTP is valid.
+	 * @throws {UnauthorizedException} - Throws an exception if the OTP is invalid, expired, or if any error occurs during verification.
+	 */
+	async verification(req: Request, res: Response): Promise<{ code: string }> {
+		const { otp_code } = req.body; // Extracts the OTP code from the request body
+		const api_key_id = res.locals.api_key_id; // API key ID from response locals
+		const geo = geoip.lookup(req.ip); // Geo-location lookup based on IP address
+		const agent = useragent.parse(req.headers['user-agent']); // Parses the user-agent from request headers
+		const currentTime = new Date(); // Current time for checking OTP expiry
 
-		// Find OTP by code
+		// Find the OTP by the provided code in the repository
 		const findOtp = await this.repository.findOtpByCode(
 			'mfa_infos',
 			TOKEN_VALID,
 			otp_code,
 		);
 
+		// If OTP is not found, log the failed login attempt and throw UnauthorizedException
 		if (!findOtp) {
 			await this.helper.logAuthHistory(
 				req,
@@ -38,11 +47,12 @@ export class VerificationOtpUseCase {
 			throw new UnauthorizedException('Invalid credentials');
 		}
 
-		// Rate limit check
+		// Check the rate limit for the user
 		await this.helper.checkRateLimit(findOtp.user_id);
 
-		// Check if OTP has expired
+		// Check if the OTP has expired
 		if (findOtp.expires_at < currentTime) {
+			// Log the failed login attempt and invalidate the expired OTP
 			await this.helper.logAuthHistory(
 				req,
 				geo,
@@ -58,7 +68,7 @@ export class VerificationOtpUseCase {
 			throw new UnauthorizedException('OTP Expired');
 		}
 
-		// Generate new code and save to database
+		// Generate a new code for the user and save it to the database
 		const { code } = await this.helper.setCode(
 			req,
 			findOtp.user_id,
@@ -67,7 +77,7 @@ export class VerificationOtpUseCase {
 			agent,
 		);
 
-		// Invalidate OTP and reset failed attempts
+		// Invalidate the used OTP and reset the user's failed login attempts
 		await this.repository.updateOtp(
 			'mfa_infos',
 			TOKEN_INVALID,
@@ -75,7 +85,7 @@ export class VerificationOtpUseCase {
 		);
 		await this.helper.resetFailedAttempts(findOtp.user_id);
 
-		// Log success login
+		// Log the successful login attempt
 		await this.helper.logAuthHistory(
 			req,
 			geo,
@@ -84,6 +94,7 @@ export class VerificationOtpUseCase {
 			findOtp.user_id,
 		);
 
+		// Return the newly generated code
 		return { code };
 	}
 }

@@ -27,18 +27,18 @@ export class RegisterUseCase {
 	 * 2. Hashes the password using bcrypt for secure storage.
 	 * 3. Saves the user information to the database.
 	 *
-	 * @param {Request} req - The Express request object containing the registration details. The request body should include `username`, `email`, `phone_number`, and `password`.
+	 * @param {Request} req - The Express request object containing the registration details. The request body should include `username`, `email`, `phone`, and `password`.
 	 * @returns {Promise<any>} - Returns the result of the registration process, which is typically the saved user data.
 	 * @throws {BadRequestException} - Throws an exception if the email or phone number is already in use, ensuring no duplicates are allowed.
 	 *
 	 * @example
 	 * const result = await registerUseCase.register({
-	 *   body: { username: 'user123', email: 'test@example.com', phone_number: '1234567890', password: 'securePassword' },
+	 *   body: { username: 'user123', email: 'test@example.com', phone: '1234567890', password: 'securePassword' },
 	 * });
 	 * // result will contain the registered user data
 	 */
 	async register(req: Request) {
-		const { username, email, phone_number, password } = req.body;
+		const { username, email, phone, password } = req.body;
 
 		if (NODE_ENV === 'PRODUCTION') {
 			// Validate the email domain before proceeding
@@ -57,11 +57,8 @@ export class RegisterUseCase {
 		}
 
 		// Checking if the phone number is provided and if it already exists in the database
-		if (phone_number !== undefined) {
-			find = await this.repository.findByPhoneNumber(
-				'users',
-				phone_number,
-			);
+		if (phone !== undefined) {
+			find = await this.repository.findByPhoneNumber('users', phone);
 			if (find) {
 				// Throw an error if the phone number is already registered
 				throw new BadRequestException('Phone number already in use');
@@ -76,7 +73,7 @@ export class RegisterUseCase {
 			username: username,
 			email: email, // Email provided by the user
 			password: hashedPassword, // Hashed password for security
-			phone_number: phone_number, // Phone number provided by the user
+			phone: phone, // Phone number provided by the user
 			status: USER_ACTIVE, // Status of the new user
 		});
 

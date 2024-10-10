@@ -14,7 +14,15 @@ export class LogoutUseCase {
 		private readonly jwtService: JwtService,
 	) {}
 
-	async logout(res: Response, req: Request): Promise<void> {
+	/**
+	 * Logout
+	 * @author telkomdev-alfahan
+	 * @date 2024-10-06
+	 * @param { Request } req
+	 * @param { Response } res
+	 * @returns { Promise<void> }
+	 */
+	async logout(req: Request, res: Response): Promise<void> {
 		const authHeader = req.headers.authorization;
 		const api_key_id = res.locals.api_key_id;
 

@@ -146,12 +146,9 @@ export class AuthControllerV10 {
 	 * @throws {HttpException} - Throws an exception if login fails.
 	 */
 	@Post('/login')
-	async login(
-		@Res() res: Response, // Injecting the Express response object
-		@Req() req: Request, // Injecting the Express request object
-	): Promise<Response> {
+	async login(@Req() req: Request, @Res() res: Response): Promise<Response> {
 		try {
-			const data = await this.loginUseCase.login(res, req); // Calling login logic
+			const data = await this.loginUseCase.login(req, res);
 			return ApiResponse.success(res, data, successCode.SCDTDT0001); // Returning success response
 		} catch (error) {
 			if (error instanceof Error) {
@@ -159,13 +156,13 @@ export class AuthControllerV10 {
 					res,
 					error.message,
 					errorCode.ERDTTD0001,
-					error.stack,
-				); // Handling login error
+					error.name,
+				);
 			}
 			throw new HttpException(
 				error.message,
 				HttpStatus.INTERNAL_SERVER_ERROR,
-			); // Throwing internal server error
+			);
 		}
 	}
 
@@ -179,13 +176,13 @@ export class AuthControllerV10 {
 	 */
 	@Post('/verification-otp')
 	async verification(
-		@Res() res: Response, // Injecting the Express response object
 		@Req() req: Request, // Injecting the Express request object
+		@Res() res: Response, // Injecting the Express response object
 	): Promise<Response> {
 		try {
 			const data = await this.verificationOtpUseCase.verification(
-				res,
 				req,
+				res,
 			); // Calling OTP verification logic
 			return ApiResponse.success(res, data, successCode.SCDTDT0001); // Returning success response
 		} catch (error) {
@@ -214,11 +211,11 @@ export class AuthControllerV10 {
 	 */
 	@Post('/refresh-token/:refresh_token')
 	async refreshToken(
-		@Res() res: Response,
 		@Req() req: Request,
+		@Res() res: Response,
 	): Promise<Response> {
 		try {
-			const data = await this.refreshTokenUseCase.refreshToken(res, req); // Calling refresh token logic
+			const data = await this.refreshTokenUseCase.refreshToken(req, res); // Calling refresh token logic
 			return ApiResponse.success(res, data, successCode.SCDTDT0001); // Returning success response
 		} catch (error) {
 			if (error instanceof Error) {
@@ -236,13 +233,21 @@ export class AuthControllerV10 {
 		}
 	}
 
+	/**
+	 * @route POST /token
+	 * @description Handles the request to refresh a token using the refresh token logic.
+	 * @param {Response} res - The Express response object used to send the response.
+	 * @param {Request} req - The Express request object containing the refresh token and necessary credentials.
+	 * @returns {Promise<Response>} - Returns a successful response with the new token if the refresh is successful.
+	 * @throws {HttpException} - Throws an internal server error if the refresh fails.
+	 */
 	@Post('/token')
 	async getToken(
-		@Res() res: Response,
 		@Req() req: Request,
+		@Res() res: Response,
 	): Promise<Response> {
 		try {
-			const data = await this.getTokenUseCase.getToken(res, req); // Calling refresh token logic
+			const data = await this.getTokenUseCase.getToken(req, res); // Calling refresh token logic
 			return ApiResponse.success(res, data, successCode.SCDTDT0001); // Returning success response
 		} catch (error) {
 			if (error instanceof Error) {
@@ -302,13 +307,13 @@ export class AuthControllerV10 {
 	 */
 	@Post('/login-phone')
 	async loginPhone(
-		@Res() res: Response, // Injecting the Express response object
 		@Req() req: Request, // Injecting the Express request object
+		@Res() res: Response, // Injecting the Express response object
 	): Promise<Response> {
 		try {
 			const data = await this.verificationOtpUseCase.verification(
-				res,
 				req,
+				res,
 			); // Calling login logic
 			return ApiResponse.success(res, data, successCode.SCDTDT0011); // Returning success response
 		} catch (error) {
@@ -337,11 +342,11 @@ export class AuthControllerV10 {
 	 */
 	@Post('/logout')
 	async logout(
-		@Res() res: Response, // Injecting the Express response object
 		@Req() req: Request, // Injecting the Express request object
+		@Res() res: Response, // Injecting the Express response object
 	): Promise<Response> {
 		try {
-			await this.logoutUseCase.logout(res, req); // Calling logout logic
+			await this.logoutUseCase.logout(req, res); // Calling logout logic
 			return ApiResponse.success(res, null, successCode.SCDTDT0007); // Returning success response
 		} catch (error) {
 			if (error instanceof Error) {
@@ -369,8 +374,8 @@ export class AuthControllerV10 {
 	 */
 	@Post('/register')
 	async register(
-		@Res() res: Response, // Injecting the Express response object
 		@Req() req: Request, // Injecting the Express request object
+		@Res() res: Response, // Injecting the Express response object
 	): Promise<Response> {
 		try {
 			const data = await this.registerUseCase.register(req); // Calling registration logic
@@ -401,8 +406,8 @@ export class AuthControllerV10 {
 	 */
 	@Post('/forgot-password')
 	async forgotPassword(
-		@Res() res: Response, // Injecting the Express response object
 		@Req() req: Request, // Injecting the Express request object
+		@Res() res: Response, // Injecting the Express response object
 	): Promise<Response> {
 		try {
 			const data = await this.forgotPasswordUseCase.forgotPassword(req); // Calling forgot password logic
@@ -433,8 +438,8 @@ export class AuthControllerV10 {
 	 */
 	@Post('/reset-password/:token')
 	async resetPassword(
-		@Res() res: Response, // Injecting the Express response object
 		@Req() req: Request, // Injecting the Express request object
+		@Res() res: Response, // Injecting the Express response object
 	): Promise<Response> {
 		try {
 			const data = await this.resetPasswordUseCase.resetPassword(req); // Calling reset password logic
@@ -455,10 +460,18 @@ export class AuthControllerV10 {
 		}
 	}
 
+	/**
+	 * @route POST /validate-code
+	 * @description Validates a user-provided code, such as for password reset or multi-factor authentication (MFA).
+	 * @param {Response} res - The Express response object used to send the response.
+	 * @param {Request} req - The Express request object containing the code to be validated.
+	 * @returns {Promise<Response>} - Returns a successful response with the validation result if the code is valid.
+	 * @throws {HttpException} - Throws an internal server error if an unexpected issue occurs during validation.
+	 */
 	@Post('validate-code')
 	async validationCode(
-		@Res() res: Response,
 		@Req() req: Request,
+		@Res() res: Response,
 	): Promise<Response> {
 		try {
 			const data = await this.validateUseCase.validateCode(res, req); // Calling reset password logic

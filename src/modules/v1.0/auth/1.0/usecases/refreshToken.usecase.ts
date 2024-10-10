@@ -13,7 +13,7 @@ export class RefreshTokenUseCase {
 		private readonly jwtService: JwtService,
 	) {}
 
-	async refreshToken(res: Response, req: Request) {
+	async refreshToken(req: Request, res: Response) {
 		const { refresh_token } = req.params;
 		const api_key_id = res.locals.api_key_id;
 

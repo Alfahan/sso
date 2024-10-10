@@ -16,14 +16,17 @@ export class GetTokenUseCase {
 	) {}
 
 	async getToken(
-		res: Response,
 		req: Request,
+		res: Response,
 	): Promise<{ access_token: string; refresh_token: string }> {
 		const { code } = req.body;
 		const api_key_id = res.locals.api_key_id;
 		const geo = geoip.lookup(req.ip);
 		const agent = useragent.parse(req.headers['user-agent']);
 		const findCode = await this.repository.findCode('auth_codes', code);
+		// Generate new tokens
+		const { accessToken, refreshToken, uuid } =
+			this.helper.generateTokens();
 
 		if (!findCode) {
 			throw new UnauthorizedException(
@@ -71,9 +74,14 @@ export class GetTokenUseCase {
 				'LOGIN',
 				findCode.user_id,
 			);
+
 			await this.repository.updateTokenStatus(
 				'user_sessions',
-				LOGGED_IN,
+				{
+					token: accessToken,
+					refresh_token: refreshToken,
+					status: LOGGED_IN,
+				},
 				existingToken.id,
 			);
 			return {
@@ -81,10 +89,6 @@ export class GetTokenUseCase {
 				refresh_token: existingToken.refresh_token,
 			};
 		}
-
-		// Generate new tokens
-		const { accessToken, refreshToken, uuid } =
-			this.helper.generateTokens();
 
 		const tokenData = {
 			id: uuid,

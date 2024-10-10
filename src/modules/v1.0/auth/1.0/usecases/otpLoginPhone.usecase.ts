@@ -17,12 +17,9 @@ export class OtpLoginPhoneUseCase {
 		const geo = geoip.lookup(req.ip);
 		const agent = useragent.parse(req.headers['user-agent']);
 
-		const { phone_number } = req.body;
+		const { phone } = req.body;
 
-		const user = await this.repository.findByPhoneNumber(
-			'users',
-			phone_number,
-		);
+		const user = await this.repository.findByPhoneNumber('users', phone);
 
 		if (!user) {
 			throw new Error('User not found');
@@ -56,7 +53,7 @@ export class OtpLoginPhoneUseCase {
 
 		// Generate new OTP
 		const otpCode = this.helper.generateOtpCode();
-		const otpExpired = this.helper.addMinutesToDate(new Date(), 10);
+		const otpExpired = this.helper.addMinutesToDate(new Date(), 3);
 		await this.repository.saveOtp('mfa_infos', {
 			otp_code: otpCode,
 			expires_at: otpExpired,
@@ -64,7 +61,7 @@ export class OtpLoginPhoneUseCase {
 			status: TOKEN_VALID,
 		});
 
-		this.helper.sendOtpToUser(phone_number, otpCode);
+		this.helper.sendOtpToUser(phone, otpCode);
 
 		await this.helper.resetFailedAttempts(user.id);
 

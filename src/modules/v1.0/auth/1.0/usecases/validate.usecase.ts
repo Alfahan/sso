@@ -73,22 +73,19 @@ export class ValidateUseCase {
 	 *
 	 * @example
 	 * const result = await validateUseCase.validatePhone({
-	 *   body: { phone_number: '1234567890' },
+	 *   body: { phone: '1234567890' },
 	 * });
 	 */
 	async validatePhone(req: Request): Promise<boolean> {
-		const { phone_number } = req.body;
+		const { phone } = req.body;
 
 		// Check if phone number is provided
-		if (phone_number === undefined) {
+		if (phone === undefined) {
 			throw new BadRequestException('Phone is required');
 		}
 
 		// Find the phone number in the repository
-		const find = await this.repository.findByPhoneNumber(
-			'users',
-			phone_number,
-		);
+		const find = await this.repository.findByPhoneNumber('users', phone);
 
 		// Check if the phone number exists in the repository
 		if (find == undefined) {
@@ -136,6 +133,23 @@ export class ValidateUseCase {
 		return find !== undefined;
 	}
 
+	/**
+	 * @method validateCode
+	 * @description
+	 * Validates if the provided Code exists in the repository.
+	 *
+	 * This method will check if the code is provided and then look up the username in the database.
+	 * If the username is not found or if no username is provided, it throws a BadRequestException.
+	 *
+	 * @param {Request} req - The Express request object containing the username in the request body.
+	 * @returns {Promise<boolean>} - Returns true if the username is found, otherwise false.
+	 * @throws {BadRequestException} - Throws an exception if the username is not provided or not found.
+	 *
+	 * @example
+	 * const result = await validateUseCase.validateUsername({
+	 *   body: { code: 'john_doe' },
+	 * });
+	 */
 	async validateCode(
 		res: Response,
 		req: Request,

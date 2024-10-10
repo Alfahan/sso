@@ -204,12 +204,9 @@ export class AuthRepository {
 		}
 	}
 
-	async findByPhoneNumber(
-		table: string,
-		phone_number: string,
-	): Promise<any | null> {
-		const query = `SELECT id, email, password FROM ${table} WHERE phone_number=$1 LIMIT 1`;
-		const value = [phone_number];
+	async findByPhoneNumber(table: string, phone: string): Promise<any | null> {
+		const query = `SELECT id, email, password FROM ${table} WHERE phone=$1 LIMIT 1`;
+		const value = [phone];
 
 		try {
 			// Execute the query to retrieve the user by phone number
@@ -292,12 +289,12 @@ export class AuthRepository {
 
 	async register(table: string, payload: any): Promise<void> {
 		// Query to insert the new user data (email, password, phone number, status) into the table
-		const query = `INSERT INTO ${table} (username, email, password, phone_number, status) VALUES ($1, $2, $3, $4, $5)`;
+		const query = `INSERT INTO ${table} (username, email, password, phone, status) VALUES ($1, $2, $3, $4, $5)`;
 		const values = [
 			payload.username,
 			payload.email,
 			payload.password,
-			payload.phone_number,
+			payload.phone,
 			payload.status,
 		];
 

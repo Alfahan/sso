@@ -13,7 +13,7 @@ export class LoginUseCase {
 		private readonly helper: AuthHelper,
 	) {}
 
-	async login(res: Response, req: Request): Promise<{ code: string }> {
+	async login(req: Request, res: Response): Promise<{ code: string }> {
 		const { email, password } = req.body;
 		const api_key_id = res.locals.api_key_id;
 

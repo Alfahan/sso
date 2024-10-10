@@ -15,7 +15,7 @@ export class Customer extends BaseEntity {
 	@PrimaryGeneratedColumn('uuid')
 	id: string;
 
-	@ManyToOne(() => User, (user) => user.user_audit_trails)
+	@ManyToOne(() => User, (user) => user.customer)
 	@JoinColumn({ name: 'user_id' })
 	user_id: User;
 
