@@ -4,6 +4,8 @@ import * as bcrypt from 'bcrypt'; // Importing bcrypt for hashing the password
 import { Request } from 'express'; // Importing Request from express for type safety
 import { NODE_ENV, USER_ACTIVE } from '@app/const'; // Importing user status constant
 import { AuthHelper } from '../auth.helper';
+import { User } from '@app/entities/user.entity';
+import CryptoTs from 'pii-agent-ts';
 
 /**
  * @service RegisterUseCase
@@ -45,39 +47,33 @@ export class RegisterUseCase {
 			this.helper.validateDomain(email);
 		}
 
-		let find: any = null; // Variable to hold the result of database lookups
-
-		// Checking if the email is provided and if it already exists in the database
-		if (email !== undefined) {
-			find = await this.repository.findByEmail('users', email);
-			if (find) {
-				// Throw an error if the email is already registered
-				throw new BadRequestException('Email already in use');
-			}
-		}
-
-		// Checking if the phone number is provided and if it already exists in the database
-		if (phone !== undefined) {
-			find = await this.repository.findByPhoneNumber('users', phone);
-			if (find) {
-				// Throw an error if the phone number is already registered
-				throw new BadRequestException('Phone number already in use');
-			}
-		}
-
 		// Hashing the password using bcrypt with a salt factor of 10
 		const hashedPassword = await bcrypt.hash(password, 10);
 
+		const user = new User();
+		user.username = CryptoTs.encryptWithAes('AES_256_CBC', username);
+		user.email = CryptoTs.encryptWithAes('AES_256_CBC', email);
+		user.phone = CryptoTs.encryptWithAes('AES_256_CBC', phone);
+
+		const saveToHeap = await CryptoTs.buildBlindIndex(user);
+
 		// Registering the new user in the database
 		const result = await this.repository.register('users', {
-			username: username,
-			email: email, // Email provided by the user
-			password: hashedPassword, // Hashed password for security
-			phone: phone, // Phone number provided by the user
-			status: USER_ACTIVE, // Status of the new user
+			username: saveToHeap.username,
+			username_bidx: saveToHeap.username_bidx,
+			email: saveToHeap.email,
+			email_bidx: saveToHeap.email_bidx,
+			password: hashedPassword,
+			phone: saveToHeap.phone,
+			phone_bidx: saveToHeap.phone_bidx,
+			status: USER_ACTIVE,
 		});
-
-		// Returning the result of the registration process
-		return result;
+		// Return the result of the successful registration
+		if (result === false) {
+			console.log('Error during registration');
+			throw new BadRequestException(
+				'Failed to register user. Username, Email, Phone has been registered',
+			);
+		}
 	}
 }

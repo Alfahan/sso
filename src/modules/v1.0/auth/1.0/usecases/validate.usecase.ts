@@ -4,6 +4,7 @@ import { Request, Response } from 'express'; // Importing Request from express f
 import * as useragent from 'useragent';
 import * as geoip from 'geoip-lite';
 import { TOKEN_INVALID } from '@app/const';
+import { helperSplit } from '@app/libraries/helpers';
 
 /**
  * @service ValidateUseCase
@@ -43,12 +44,13 @@ export class ValidateUseCase {
 		const { email } = req.body;
 
 		// Check if email is provided
-		if (email === undefined) {
+		if (!email) {
 			throw new BadRequestException('Email is required');
 		}
 
 		// Find the email in the repository
-		const find = await this.repository.findByEmail('users', email);
+		const fullHeap = await helperSplit(email, 'email_text_heap');
+		const find = await this.repository.findByEmail('users', fullHeap);
 
 		// Check if the email exists in the repository
 		if (find == undefined) {
@@ -84,8 +86,10 @@ export class ValidateUseCase {
 			throw new BadRequestException('Phone is required');
 		}
 
+		// Find the email in the repository
+		const fullHeap = await helperSplit(phone, 'phone_text_heap');
 		// Find the phone number in the repository
-		const find = await this.repository.findByPhoneNumber('users', phone);
+		const find = await this.repository.findByPhoneNumber('users', fullHeap);
 
 		// Check if the phone number exists in the repository
 		if (find == undefined) {
@@ -121,8 +125,10 @@ export class ValidateUseCase {
 			throw new BadRequestException('Username is required');
 		}
 
+		// Find the email in the repository
+		const fullHeap = await helperSplit(username, 'username_text_heap');
 		// Find the username in the repository
-		const find = await this.repository.findByUsername('users', username);
+		const find = await this.repository.findByUsername('users', fullHeap);
 
 		// Check if the username exists in the repository
 		if (find == undefined) {

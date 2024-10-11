@@ -1,21 +1,27 @@
 import * as bcrypt from 'bcrypt';
 import CryptoTs from 'pii-agent-ts';
-import { v4 as uuidv4 } from 'uuid';
 import Notification from 'notif-agent-ts';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { TooManyRequestsException } from '@app/common/api-response/interfaces/fabd-to-many-request';
 import { AuthRepository } from '../repositories/auth.repository';
 import { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
-import { TOKEN_VALID } from '@app/const';
+import { NODE_ENV, TOKEN_VALID } from '@app/const';
 import { generateRandomString } from '@app/libraries/helpers';
+import { RedisLibs } from '@app/libraries/redis';
+import Redis from 'ioredis';
 
 @Injectable()
 export class AuthHelper {
+	private redisLib: RedisLibs;
+
 	constructor(
 		private readonly repository: AuthRepository,
 		private readonly jwtService: JwtService,
-	) {}
+	) {
+		const redisClient = new Redis();
+		this.redisLib = new RedisLibs(redisClient);
+	}
 
 	/**
 	 * isPasswordValid
@@ -90,7 +96,7 @@ export class AuthHelper {
 		const payloadMail = {
 			to: [payload.email],
 			subject: 'New Device Login',
-			templateCode: 'sso_new_device_login',
+			templateCode: 'sso_device_login_alert',
 			data: {
 				browser: payload.browser,
 				device: payload.device,
@@ -186,85 +192,83 @@ export class AuthHelper {
 
 	/**
 	 * checkRateLimit
-	 * @author telkomdev-alfahan
-	 * @date 2024-10-06
+	 * Mengecek apakah user melebihi batas login attempts
 	 * @param { string } user_id
 	 * @returns { Promise<void> }
 	 */
 	async checkRateLimit(user_id: string): Promise<void> {
-		const attempt = await this.repository.findFailedLoginAttempts(
-			'users',
-			user_id,
-		);
+		const redisKey = `service-sso:${NODE_ENV}-failed_attempt:${user_id}`;
 
-		if (attempt.failed_login_attempts > 0) {
-			const lastAttemptTime = new Date(attempt.updated_at).getTime();
+		const attempt = await this.redisLib.get(redisKey);
 
-			const timeSinceLastAttempt = (Date.now() - lastAttemptTime) / 1000;
+		if (attempt) {
+			const failedAttempts = JSON.parse(attempt); // Parsing data JSON dari Redis
+			const { failed_login_attempts, expired_at } = failedAttempts;
 
-			if (
-				attempt.failed_login_attempts >= 5 &&
-				timeSinceLastAttempt < 15 * 60
-			) {
-				throw new TooManyRequestsException(
-					'Too many request attempts. Try again later.',
-				);
-			} else if (timeSinceLastAttempt >= 15 * 60) {
-				await this.resetFailedAttempts(user_id);
+			if (failed_login_attempts > 0) {
+				const lastAttemptTime = new Date(expired_at).getTime();
+				const timeSinceLastAttempt =
+					(Date.now() - lastAttemptTime) / 1000; // Selisih waktu dalam detik
+
+				// Cek apakah user telah mencapai batas failed attempts dan apakah waktu blokir belum habis
+				if (
+					failed_login_attempts >= 5 &&
+					timeSinceLastAttempt < 15 * 60
+				) {
+					throw new TooManyRequestsException(
+						`Too many request attempts. Please wait ${Math.ceil(
+							(15 * 60 - timeSinceLastAttempt) / 60,
+						)} minutes and try again.`,
+					);
+				}
 			}
 		}
 	}
 
 	/**
 	 * incrementFailedAttempts
-	 * @author telkomdev-alfahan
-	 * @date 2024-10-06
+	 * Menambah jumlah failed login attempts pada Redis
 	 * @param { string } user_id
 	 * @returns { Promise<void> }
 	 */
 	async incrementFailedAttempts(user_id: string): Promise<void> {
-		const attempt = await this.repository.findFailedLoginAttempts(
-			'users',
-			user_id,
-		);
+		const redisKey = `service-sso:${NODE_ENV}-failed_attempt:${user_id}`;
 
-		attempt.failed_login_attempts += 1;
-		attempt.updated_at = new Date();
+		// Cek apakah data attempt ada di Redis
+		const attempt = await this.redisLib.get(redisKey);
+		let failedAttempts = {
+			failed_login_attempts: 0,
+			expired_at: new Date(),
+		};
 
-		await this.repository.addFailedLoginAttempts(
-			'users',
-			{
-				failed_login_attempts: attempt.failed_login_attempts,
-				updated_at: attempt.updated_at,
-			},
-			user_id,
+		// Jika data attempt ada, parse dan increment jumlah upaya login yang gagal
+		if (attempt) {
+			failedAttempts = JSON.parse(attempt);
+			failedAttempts.failed_login_attempts += 1;
+			failedAttempts.expired_at = new Date();
+		} else {
+			// Jika tidak ada data, ini adalah failed attempt pertama
+			failedAttempts.failed_login_attempts = 1;
+			failedAttempts.expired_at = new Date();
+		}
+
+		await this.redisLib.set(
+			redisKey,
+			JSON.stringify(failedAttempts),
+			15 * 60,
 		);
 	}
 
 	/**
 	 * resetFailedAttempts
-	 * @author telkomdev-alfahan
-	 * @date 2024-10-06
+	 * Menghapus atau mereset failed login attempts di Redis
 	 * @param { string } user_id
 	 * @returns { Promise<void> }
 	 */
 	async resetFailedAttempts(user_id: string): Promise<void> {
-		const attempt = await this.repository.findFailedLoginAttempts(
-			'users',
-			user_id,
-		);
+		const redisKey = `service-sso:${NODE_ENV}-failed_attempt:${user_id}`;
 
-		attempt.failed_login_attempts = 0;
-		attempt.updated_at = new Date();
-
-		await this.repository.addFailedLoginAttempts(
-			'users',
-			{
-				failed_login_attempts: attempt.failed_login_attempts,
-				updated_at: attempt.updated_at,
-			},
-			user_id,
-		);
+		await this.redisLib.del(redisKey);
 	}
 
 	/**
@@ -313,9 +317,8 @@ export class AuthHelper {
 	 * @author telkomdev-alfahan
 	 * @date 2024-10-06
 	 */
-	generateTokens() {
-		const uuid = uuidv4();
-		const encryptUuid = CryptoTs.encryptWithAes('AES_256_CBC', uuid);
+	generateTokens(id: string) {
+		const encryptUuid = CryptoTs.encryptWithAes('AES_256_CBC', id);
 		const payloadToken = { sub: encryptUuid.Value.toString() };
 		const accessToken = this.jwtService.sign(payloadToken, {
 			expiresIn: '15m',
@@ -323,7 +326,7 @@ export class AuthHelper {
 		const refreshToken = this.jwtService.sign(payloadToken, {
 			expiresIn: '7d',
 		});
-		return { accessToken, refreshToken, uuid };
+		return { accessToken, refreshToken };
 	}
 
 	/**

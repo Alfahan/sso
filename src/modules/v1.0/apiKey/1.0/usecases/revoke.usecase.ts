@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ApiKeyRepository } from '../../repository/apiKey.repository';
-import { API_KEY_INVALID, API_KEY_VALID } from '@app/const';
+import { API_KEY_INVALID, API_KEY_VALID, NODE_ENV } from '@app/const';
 import { Request } from 'express';
 import { validateRotateAndRevoke } from '../apikey.validate';
 import { RedisLibs } from '@app/libraries/redis';
@@ -29,7 +29,7 @@ export class RevokeApiKeyUseCase {
 
 		const cachedApiKey = await this.redisLib.get(`api_key:${name}`);
 		if (cachedApiKey) {
-			await this.redisLib.del(`api_key:${name}`);
+			await this.redisLib.del(`service-sso:${NODE_ENV}-api_key:${name}`);
 		}
 
 		// Check if the API key exists

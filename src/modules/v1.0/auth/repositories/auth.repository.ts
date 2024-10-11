@@ -205,7 +205,7 @@ export class AuthRepository {
 	}
 
 	async findByPhoneNumber(table: string, phone: string): Promise<any | null> {
-		const query = `SELECT id, email, password FROM ${table} WHERE phone=$1 LIMIT 1`;
+		const query = `SELECT id, email, password FROM ${table} WHERE phone_bidx=$1 LIMIT 1`;
 		const value = [phone];
 
 		try {
@@ -219,7 +219,7 @@ export class AuthRepository {
 	}
 
 	async findByUsername(table: string, username: string): Promise<any | null> {
-		const query = `SELECT id, password FROM ${table} WHERE username=$1 LIMIT 1`;
+		const query = `SELECT id, password FROM ${table} WHERE username_bidx=$1 LIMIT 1`;
 		const value = [username];
 
 		try {
@@ -233,7 +233,7 @@ export class AuthRepository {
 	}
 
 	async findByEmail(table: string, email: string): Promise<any | null> {
-		const query = `SELECT id, email, password FROM ${table} WHERE email=$1 LIMIT 1`;
+		const query = `SELECT id, email, password FROM ${table} WHERE email_bidx=$1 LIMIT 1`;
 		const value = [email];
 
 		try {
@@ -287,23 +287,28 @@ export class AuthRepository {
 		}
 	}
 
-	async register(table: string, payload: any): Promise<void> {
+	async register(table: string, payload: any): Promise<boolean> {
 		// Query to insert the new user data (email, password, phone number, status) into the table
-		const query = `INSERT INTO ${table} (username, email, password, phone, status) VALUES ($1, $2, $3, $4, $5)`;
+		const query = `INSERT INTO ${table} (username, username_bidx, email, email_bidx, password, phone, phone_bidx, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`;
 		const values = [
 			payload.username,
+			payload.username_bidx,
 			payload.email,
+			payload.email_bidx,
 			payload.password,
 			payload.phone,
+			payload.phone_bidx,
 			payload.status,
 		];
 
 		try {
 			// Execute the query to insert the new user data into the database
 			await this.dataSource.query(query, values);
+			return true;
 		} catch (error) {
 			// Log any errors that occur during the database query
-			console.error('Error registering user:', error);
+			console.log('Error registering user:', error);
+			return false;
 		}
 	}
 

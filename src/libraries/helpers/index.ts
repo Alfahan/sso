@@ -1,3 +1,5 @@
+import CryptoTs from 'pii-agent-ts';
+
 /**
  * generateRandomString
  * @author telkomdev-alfahan
@@ -17,5 +19,18 @@ export async function generateRandomString(length: number): Promise<string> {
 	}
 
 	// Return the generated random string
+	return result;
+}
+
+export async function helperSplit(
+	value: string,
+	table: string,
+): Promise<string> {
+	const splitValue = CryptoTs.split(value);
+	const userHeap = await CryptoTs.searchContentFullText(table, {
+		contents: splitValue,
+	});
+	const result = userHeap.map((e) => e.hash).join('');
+
 	return result;
 }

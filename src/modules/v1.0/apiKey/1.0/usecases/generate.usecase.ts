@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Request } from 'express';
 import { ApiKeyRepository } from '../../repository/apiKey.repository';
-import { API_KEY_VALID } from '@app/const';
+import { API_KEY_VALID, NODE_ENV } from '@app/const';
 import * as crypto from 'crypto';
 import { validateGenerate } from '../apikey.validate';
 import Redis from 'ioredis';
@@ -30,7 +30,9 @@ export class GenerateApiKeyUseCase {
 
 		const { name, ip_origin, domain } = req.body;
 
-		const cachedApiKey = await this.redisLib.get(`api_key:${name}`);
+		const cachedApiKey = await this.redisLib.get(
+			`service-sso:${NODE_ENV}-api_key:${name}`,
+		);
 		if (cachedApiKey) {
 			return JSON.parse(
 				CryptoTs.decryptWithAes(
@@ -72,7 +74,7 @@ export class GenerateApiKeyUseCase {
 			);
 
 			await this.redisLib.set(
-				`api_key:${name}`,
+				`service-sso:${NODE_ENV}-api_key:${name}`,
 				CryptoTs.encryptWithAes('AES_256_CBC', JSON.stringify(payload))
 					.Value,
 			);
@@ -83,7 +85,7 @@ export class GenerateApiKeyUseCase {
 
 		// Return the existing valid API key if found
 		await this.redisLib.set(
-			`api_key:${name}`,
+			`service-sso:${NODE_ENV}-api_key:${name}`,
 			CryptoTs.encryptWithAes('AES_256_CBC', JSON.stringify(cekApiKey))
 				.Value,
 		);

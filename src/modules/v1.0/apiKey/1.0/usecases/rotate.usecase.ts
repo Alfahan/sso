@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ApiKeyRepository } from '../../repository/apiKey.repository';
 import { Request } from 'express';
-import { API_KEY_VALID } from '@app/const';
+import { API_KEY_VALID, NODE_ENV } from '@app/const';
 import * as crypto from 'crypto';
 import { validateRotateAndRevoke } from '../apikey.validate';
 import { RedisLibs } from '@app/libraries/redis';
@@ -63,7 +63,7 @@ export class RotateApiKeyUseCase {
 			status: rotateApiKey[0].status,
 		};
 		await this.redisLib.set(
-			`api_keys:${name}`,
+			`service-sso:${NODE_ENV}-api_key:${name}`,
 			CryptoTs.encryptWithAes('AES_256_CBC', JSON.stringify(payloadRedis))
 				.Value,
 		);

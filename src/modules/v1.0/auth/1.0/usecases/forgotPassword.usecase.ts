@@ -4,6 +4,7 @@ import { Request } from 'express';
 import { TOKEN_INVALID, TOKEN_VALID } from '@app/const';
 import { JwtService } from '@nestjs/jwt';
 import CryptoTs from 'pii-agent-ts';
+import { helperSplit } from '@app/libraries/helpers';
 
 @Injectable()
 export class ForgotPasswordUseCase {
@@ -39,10 +40,12 @@ export class ForgotPasswordUseCase {
 		let user = null;
 
 		// Find the user by email
-		if (email) {
-			user = await this.repository.findByEmail('users', email); // Fetch user by email
+		if (!email) {
+			throw new UnauthorizedException('Invalid credentials');
 		}
 
+		const fullHeap = await helperSplit(email, 'email_text_heap');
+		user = await this.repository.findByEmail('users', fullHeap); // Fetch user by email
 		// If user is not found, throw an UnauthorizedException
 		if (!user) {
 			throw new UnauthorizedException('Invalid credentials');

@@ -5,6 +5,8 @@ import { TOKEN_INVALID, TOKEN_VALID } from '@app/const';
 import * as useragent from 'useragent';
 import * as geoip from 'geoip-lite';
 import { AuthHelper } from '../auth.helper';
+import { helperSplit } from '@app/libraries/helpers';
+import CryptoTs from 'pii-agent-ts';
 
 @Injectable()
 export class LoginUseCase {
@@ -25,7 +27,10 @@ export class LoginUseCase {
 		}
 
 		// Find user by email
-		const user = await this.repository.findByEmail('users', email);
+		const fullHeap = await helperSplit(email, 'email_text_heap');
+
+		const user = await this.repository.findByEmail('users', fullHeap);
+
 		if (!user) {
 			throw new UnauthorizedException('Invalid credentials');
 		}
@@ -54,6 +59,7 @@ export class LoginUseCase {
 		api_key_id: string,
 	): Promise<{ code: string }> {
 		const currentTime = new Date();
+
 		const existingCode = await this.repository.checkValidateCode(
 			'auth_codes',
 			{
@@ -83,6 +89,7 @@ export class LoginUseCase {
 					geo,
 					agent,
 				);
+				await this.helper.resetFailedAttempts(user.id);
 				return { code: code };
 			}
 
@@ -93,6 +100,7 @@ export class LoginUseCase {
 				'LOGIN_SUCCESS',
 				user.id,
 			);
+			await this.helper.resetFailedAttempts(user.id);
 			return { code: existingCode.code };
 		}
 
@@ -130,7 +138,10 @@ export class LoginUseCase {
 			api_key_id,
 		});
 
-		this.helper.sendOtpVerification(user.email, otpCode);
+		this.helper.sendOtpVerification(
+			CryptoTs.decryptWithAes('AES_256_CBC', user.email),
+			otpCode,
+		);
 		await this.helper.resetFailedAttempts(user.id);
 
 		throw new UnauthorizedException('Please verify your OTP.');

@@ -154,9 +154,9 @@ export class AuthControllerV10 {
 			if (error instanceof Error) {
 				return ApiResponse.fail(
 					res,
-					error.message,
+					null,
 					errorCode.ERDTTD0001,
-					error.name,
+					error.message,
 				);
 			}
 			throw new HttpException(
@@ -279,7 +279,7 @@ export class AuthControllerV10 {
 		@Req() req: Request, // Injecting the Express request object
 	): Promise<Response> {
 		try {
-			const data = await this.otpLoginPhoneUseCase.requestOtp(req); // Calling OTP request logic
+			const data = await this.otpLoginPhoneUseCase.requestOtp(req, res); // Calling OTP request logic
 			return ApiResponse.success(res, data, successCode.SCDTDT0010); // Returning success response
 		} catch (error) {
 			if (error instanceof Error) {
@@ -384,9 +384,9 @@ export class AuthControllerV10 {
 			if (error instanceof Error) {
 				return ApiResponse.fail(
 					res,
-					error.message,
+					null,
 					errorCode.ERDTTD0009,
-					error.stack,
+					error.message,
 				); // Handling registration error
 			}
 			throw new HttpException(

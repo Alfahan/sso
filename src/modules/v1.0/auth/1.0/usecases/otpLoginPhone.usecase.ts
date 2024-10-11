@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { AuthRepository } from '../../repositories/auth.repository';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { TOKEN_VALID } from '@app/const';
 import { AuthHelper } from '../auth.helper';
 import * as useragent from 'useragent';
 import * as geoip from 'geoip-lite';
+import { helperSplit } from '@app/libraries/helpers';
 
 @Injectable()
 export class OtpLoginPhoneUseCase {
@@ -13,13 +14,19 @@ export class OtpLoginPhoneUseCase {
 		private readonly helper: AuthHelper,
 	) {}
 
-	async requestOtp(req: Request): Promise<void> {
+	async requestOtp(req: Request, res: Response): Promise<void> {
 		const geo = geoip.lookup(req.ip);
+		const api_key_id = res.locals.api_key_id;
 		const agent = useragent.parse(req.headers['user-agent']);
 
 		const { phone } = req.body;
 
-		const user = await this.repository.findByPhoneNumber('users', phone);
+		if (!phone) {
+			throw new BadRequestException('Phone is required');
+		}
+		const fullHeap = await helperSplit(phone, 'phone_text_heap');
+
+		const user = await this.repository.findByPhoneNumber('users', fullHeap);
 
 		if (!user) {
 			throw new Error('User not found');
@@ -59,6 +66,7 @@ export class OtpLoginPhoneUseCase {
 			expires_at: otpExpired,
 			user_id: user.id,
 			status: TOKEN_VALID,
+			api_key_id: api_key_id,
 		});
 
 		this.helper.sendOtpToUser(phone, otpCode);

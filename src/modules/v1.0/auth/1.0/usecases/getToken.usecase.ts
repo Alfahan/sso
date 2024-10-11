@@ -3,9 +3,11 @@ import { AuthRepository } from '../../repositories/auth.repository';
 import { Request, Response } from 'express';
 import * as geoip from 'geoip-lite';
 import * as useragent from 'useragent';
+import { v4 as uuidv4 } from 'uuid';
 import { LOGGED_IN, TOKEN_INVALID } from '@app/const';
 import { JwtService } from '@nestjs/jwt';
 import { AuthHelper } from '../auth.helper';
+import CryptoTs from 'pii-agent-ts';
 
 @Injectable()
 export class GetTokenUseCase {
@@ -24,9 +26,7 @@ export class GetTokenUseCase {
 		const geo = geoip.lookup(req.ip);
 		const agent = useragent.parse(req.headers['user-agent']);
 		const findCode = await this.repository.findCode('auth_codes', code);
-		// Generate new tokens
-		const { accessToken, refreshToken, uuid } =
-			this.helper.generateTokens();
+		let id = null;
 
 		if (!findCode) {
 			throw new UnauthorizedException(
@@ -67,6 +67,12 @@ export class GetTokenUseCase {
 			this.jwtService.verify(existingToken.token, {
 				ignoreExpiration: true,
 			});
+
+			id = existingToken.id;
+
+			// Generate new tokens
+			const { accessToken, refreshToken } =
+				this.helper.generateTokens(id);
 			await this.helper.logAuthHistory(
 				req,
 				geo,
@@ -75,19 +81,35 @@ export class GetTokenUseCase {
 				findCode.user_id,
 			);
 
+			await this.repository.updateToken(
+				'user_sessions',
+				{
+					token: accessToken,
+					refresh_token: refreshToken,
+				},
+				existingToken.id,
+			);
+
 			await this.repository.updateTokenStatus(
 				'user_sessions',
 				LOGGED_IN,
 				existingToken.id,
 			);
+
+			await this.helper.resetFailedAttempts(findCode.user_id);
+
 			return {
 				access_token: existingToken.token,
 				refresh_token: existingToken.refresh_token,
 			};
 		}
 
+		id = uuidv4();
+
+		const { accessToken, refreshToken } = this.helper.generateTokens(id);
+
 		const tokenData = {
-			id: uuid,
+			id: id,
 			user_id: findCode.user_id,
 			api_key_id,
 			token: accessToken,
@@ -105,7 +127,7 @@ export class GetTokenUseCase {
 
 		await this.repository.saveToken('user_sessions', tokenData);
 		this.helper.sendNewLoginAlert({
-			email: findCode.email,
+			email: CryptoTs.decryptWithAes('AES_256_CBC', findCode.email),
 			browser: agent.toAgent(),
 			device: agent.device.toString(),
 			geolocation: geo
@@ -113,6 +135,8 @@ export class GetTokenUseCase {
 				: 'Unknown',
 			country: geo?.country || 'Unknown',
 		});
+
+		await this.helper.resetFailedAttempts(findCode.user_id);
 
 		return { access_token: accessToken, refresh_token: refreshToken };
 	}
