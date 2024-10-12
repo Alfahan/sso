@@ -8,8 +8,9 @@ export class RegisterRepository {
 	async register(table: string, payload: any): Promise<boolean> {
 		const queryRunner = this.dataSource.createQueryRunner();
 		await queryRunner.connect();
-		const query = `INSERT INTO ${table} (username, username_bidx, email, email_bidx, password, phone, phone_bidx, segment, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`;
+		const query = `INSERT INTO ${table} (id, username, username_bidx, email, email_bidx, password, phone, phone_bidx, segment, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`;
 		const values = [
+			payload.id,
 			payload.username,
 			payload.username_bidx,
 			payload.email,

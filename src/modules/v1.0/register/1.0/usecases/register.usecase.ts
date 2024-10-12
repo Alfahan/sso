@@ -12,9 +12,9 @@ import {
 } from '@app/const'; // Importing user status constant
 import { User } from '@app/entities/user.entity';
 import CryptoTs from 'pii-agent-ts';
-import { RegisterHelper } from '../register.helper';
 import { RegisterRepository } from '../../repositories/register.repository';
-
+import { validateDomain } from '@app/libraries/helpers';
+import { v4 as uuidv4 } from 'uuid';
 /**
  * @service RegisterUseCase
  * @description
@@ -22,10 +22,7 @@ import { RegisterRepository } from '../../repositories/register.repository';
  */
 @Injectable()
 export class RegisterUseCase {
-	constructor(
-		private readonly repository: RegisterRepository,
-		private readonly helper: RegisterHelper,
-	) {}
+	constructor(private readonly repository: RegisterRepository) {}
 
 	/**
 	 * @method register
@@ -70,7 +67,7 @@ export class RegisterUseCase {
 
 		if (NODE_ENV === 'PRODUCTION') {
 			// Validate the email domain before proceeding
-			this.helper.validateDomain(email);
+			validateDomain(email);
 		}
 
 		// Hashing the password using bcrypt with a salt factor of 10
@@ -85,6 +82,7 @@ export class RegisterUseCase {
 
 		// Registering the new user in the database
 		const result = await this.repository.register('users', {
+			id: uuidv4(),
 			username: saveToHeap.username,
 			username_bidx: saveToHeap.username_bidx,
 			email: saveToHeap.email,

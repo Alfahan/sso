@@ -5,6 +5,7 @@ import {
 	JoinColumn,
 	OneToOne,
 	PrimaryGeneratedColumn,
+	Unique,
 } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { User } from './user.entity';
@@ -12,6 +13,7 @@ import CryptoTs from 'pii-agent-ts';
 
 @Entity('internals')
 @Index('idx-internals-user_id', ['user_id'])
+@Unique(['nik'])
 @Index('idx-internals-nik', ['nik'])
 @Index('idx-internals-nik_bidx', ['nik_bidx'])
 @Index('idx-internals-position', ['position'])

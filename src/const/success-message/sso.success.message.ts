@@ -95,4 +95,10 @@ export const ssoSuccessMessageCode = {
 		fabdCode: 'SCDTDT0014', // A unique code representing the success scenario.
 		message: 'Check Expired Code success.', // Description of the success scenario.
 	},
+	/*** Login Nik success */
+	SCDTDT0015: {
+		httpCode: HttpStatus.CREATED, // HTTP status code indicating that the request has been fulfilled and has resulted in the creation of a resource.
+		fabdCode: 'SCDTDT0015', // A unique code representing the success scenario.
+		message: 'Login Nik success.', // Description of the success scenario.
+	},
 };

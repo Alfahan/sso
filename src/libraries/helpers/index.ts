@@ -1,3 +1,4 @@
+import { ForbiddenException } from '@nestjs/common';
 import CryptoTs from 'pii-agent-ts';
 
 /**
@@ -33,4 +34,30 @@ export async function helperSplit(
 	const result = userHeap.map((e) => e.hash).join('');
 
 	return result;
+}
+
+/**
+ * validateDomain
+ * @author telkomdev-alfahan
+ * @date 2024-10-06
+ * @param { string } email
+ * @returns { void }
+ */
+export async function validateDomain(email: string): Promise<void> {
+	const forbiddenDomains = [
+		'example.com',
+		'example.net',
+		'example.org',
+		'mailinator.com',
+		'test.com',
+		'yopmail.com',
+		'ethereal.email',
+	];
+	// Check if the email is from a forbidden domain
+	const emailDomain = email.split('@')[1]; // Extract domain from email
+	if (forbiddenDomains.includes(emailDomain)) {
+		throw new ForbiddenException(
+			'Registration using testing email domains is not allowed',
+		);
+	}
 }

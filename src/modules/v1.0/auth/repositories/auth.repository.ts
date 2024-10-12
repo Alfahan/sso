@@ -324,6 +324,32 @@ export class AuthRepository {
 		}
 	}
 
+	async findByNik(table: string, nik: string): Promise<any | null> {
+		const queryRunner = this.dataSource.createQueryRunner();
+		await queryRunner.connect();
+		const query = `SELECT 
+			i.nik  AS nik, 
+			u.id AS id,
+			u.email AS email,
+			u.password AS password 
+		FROM ${table} i 
+		LEFT JOIN users u ON i.user_id = u.id 
+		WHERE i.nik_bidx=$1 LIMIT 1`;
+		const values = [nik];
+
+		try {
+			// Execute the query to retrieve the user by email
+			const result = await this.dataSource.manager.query(query, values);
+			await queryRunner.release();
+			return result[0] || null;
+		} catch (error) {
+			// Log any errors that occur during the database query
+			console.error('Error finding user by email:', error);
+			await queryRunner.release();
+			return null;
+		}
+	}
+
 	async findById(table: string, id: string): Promise<any | null> {
 		const queryRunner = this.dataSource.createQueryRunner();
 		await queryRunner.connect();
@@ -378,8 +404,9 @@ export class AuthRepository {
 	async register(table: string, payload: any): Promise<boolean> {
 		const queryRunner = this.dataSource.createQueryRunner();
 		await queryRunner.connect();
-		const query = `INSERT INTO ${table} (username, username_bidx, email, email_bidx, password, phone, phone_bidx, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`;
+		const query = `INSERT INTO ${table} (id, username, username_bidx, email, email_bidx, password, phone, phone_bidx, segment, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`;
 		const values = [
+			payload.id,
 			payload.username,
 			payload.username_bidx,
 			payload.email,
@@ -387,7 +414,40 @@ export class AuthRepository {
 			payload.password,
 			payload.phone,
 			payload.phone_bidx,
+			payload.segment,
 			payload.status,
+		];
+
+		try {
+			// Execute the query to insert the new user data into the database
+			await this.dataSource.manager.query(query, values);
+			await queryRunner.release();
+			return true;
+		} catch (error) {
+			// Log any errors that occur during the database query
+			console.log('Error registering user:', error);
+			await queryRunner.release();
+			return false;
+		}
+	}
+
+	async registerNik(table: string, payload: any): Promise<boolean> {
+		const queryRunner = this.dataSource.createQueryRunner();
+		await queryRunner.connect();
+		const query = `INSERT INTO ${table} (user_id, nik, nik_bidx, position, position_bidx, directorate, directorate_bidx, division, division_bidx, unit, unit_bidx, employee_status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`;
+		const values = [
+			payload.user_id,
+			payload.nik,
+			payload.nik_bidx,
+			payload.position,
+			payload.position_bidx,
+			payload.directorate,
+			payload.directorate_bidx,
+			payload.division,
+			payload.division_bidx,
+			payload.unit,
+			payload.unit_bidx,
+			payload.employee_status,
 		];
 
 		try {

@@ -6,7 +6,6 @@ import { TypeOrmModule } from '@nestjs/typeorm'; // Importing the TypeOrmModule 
 import { AuthControllerV10 } from './auth.controller'; // Importing the AuthController to handle authentication routes
 import { LoginUseCase } from './usecases/login.usecase'; // Importing the use case for login logic
 import { AuthRepository } from '../repositories/auth.repository'; // Importing the AuthRepository for database access
-import { RegisterUseCase } from './usecases/register.usecase'; // Importing the use case for handling user registration
 import { ValidateUseCase } from './usecases/validate.usecase'; // Importing the ValidateUseCase for validating email and phone numbers
 import { ApiKeyMiddleware } from '@app/middlewares/checkApiKey.middleware'; // Importing middleware to check for API key validity
 import { ApiKeyRepository } from '../../apiKey/repository/apiKey.repository'; // Importing the ApiKeyRepository for managing API keys
@@ -18,6 +17,7 @@ import { VerificationOtpUseCase } from './usecases/verificationOtp.usercase'; //
 import { RefreshTokenUseCase } from './usecases/refreshToken.usecase'; // Importing the RefreshTokenUseCase for handling refresh token logic
 import { AuthHelper } from './auth.helper'; // Importing the AuthHelper
 import { GetTokenUseCase } from './usecases/getToken.usecase';
+import { LoginNikUseCase } from './usecases/loginNik.usecase';
 
 /**
  * @module AuthModuleV10
@@ -38,12 +38,12 @@ import { GetTokenUseCase } from './usecases/getToken.usecase';
 	providers: [
 		AuthRepository,
 		AuthHelper, // AuthHelper
+		LoginNikUseCase,
 		GetTokenUseCase,
 		ValidateUseCase, // Use case for handling validation logic (e.g., email and phone validation)
 		LoginUseCase, // Use case for handling login functionality
 		VerificationOtpUseCase, // Use case for handling OTP verification after sending
 		RefreshTokenUseCase, // Optional: Use case for handling token refreshing if enabled in the future
-		RegisterUseCase, // Use case for handling registration of new users
 		ApiKeyRepository, // Repository for managing API keys
 		LogoutUseCase, // Use case for handling user logout logic
 		ForgotPasswordUseCase, // Use case for handling forgot password requests

@@ -1,6 +1,5 @@
 import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
 import { RegisterUseCase } from './usecases/register.usecase';
-import { RegisterHelper } from './register.helper';
 import { RegisterControllerV10 } from './register.controller';
 import { ApiKeyMiddleware } from '@app/middlewares/checkApiKey.middleware';
 import { ApiKeyRepository } from '../../apiKey/repository/apiKey.repository';
@@ -9,12 +8,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
 	imports: [TypeOrmModule.forFeature([])],
-	providers: [
-		ApiKeyRepository,
-		RegisterRepository,
-		RegisterHelper,
-		RegisterUseCase,
-	],
+	providers: [ApiKeyRepository, RegisterRepository, RegisterUseCase],
 	controllers: [RegisterControllerV10],
 })
 export class RegisterModuelV10 {

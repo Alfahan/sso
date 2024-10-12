@@ -29,6 +29,10 @@ export const DB_NAME = process.env.DB_NAME;
 // Secret key used for encryption or signing tokens
 export const SECRET_KEY = process.env.SECRET_KEY;
 
+// Employee Status
+export const NIK = 'NIK';
+export const NON_NIK = 'NON-NIK';
+
 // User status
 export const USER_ACTIVE = 'ACTIVE';
 export const USER_INACTIVE = 'INACTIVE';

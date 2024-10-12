@@ -11,7 +11,6 @@ import { Request, Response } from 'express'; // Importing Request and Response f
 import { ApiResponse } from '@app/common/api-response'; // Importing ApiResponse utility for consistent API responses
 import { successCode } from '@app/const/success-message'; // Importing predefined success message codes
 import { errorCode } from '@app/const/error-message'; // Importing predefined error message codes
-import { RegisterUseCase } from './usecases/register.usecase'; // Importing the RegisterUseCase for handling registration logic
 import { ValidateUseCase } from './usecases/validate.usecase'; // Importing the ValidateUseCase for email and phone validation
 import { LogoutUseCase } from './usecases/logout.usecase'; // Importing the LogoutUseCase for handling logout logic
 import { ForgotPasswordUseCase } from './usecases/forgotPassword.usecase'; // Importing ForgotPasswordUseCase for handling password recovery
@@ -20,6 +19,7 @@ import { OtpLoginPhoneUseCase } from './usecases/otpLoginPhone.usecase';
 import { VerificationOtpUseCase } from './usecases/verificationOtp.usercase';
 import { RefreshTokenUseCase } from './usecases/refreshToken.usecase';
 import { GetTokenUseCase } from './usecases/getToken.usecase';
+import { LoginNikUseCase } from './usecases/loginNik.usecase';
 
 /**
  * @class AuthControllerV10
@@ -38,7 +38,7 @@ export class AuthControllerV10 {
 		private readonly validateUseCase: ValidateUseCase, // Handles email and phone number validation
 		private readonly loginUseCase: LoginUseCase, // Handles user login
 		private readonly refreshTokenUseCase: RefreshTokenUseCase, // (Optional) Refresh Token Use Case can be added
-		private readonly registerUseCase: RegisterUseCase, // Handles user registration
+		private readonly loginNikUsecase: LoginNikUseCase,
 	) {}
 
 	/**
@@ -365,38 +365,6 @@ export class AuthControllerV10 {
 	}
 
 	/**
-	 * @route POST /auth/register
-	 * @description Registers a new user by creating a new user record in the system.
-	 * @param {Response} res - The Express response object used to send the response.
-	 * @param {Request} req - The Express request object containing user registration details in the request body.
-	 * @returns {Promise<Response>} - Returns a successful response upon successful registration.
-	 * @throws {HttpException} - Throws an exception if registration fails.
-	 */
-	@Post('/register')
-	async register(
-		@Req() req: Request, // Injecting the Express request object
-		@Res() res: Response, // Injecting the Express response object
-	): Promise<Response> {
-		try {
-			const data = await this.registerUseCase.register(req); // Calling registration logic
-			return ApiResponse.success(res, data, successCode.SCDTDT0008); // Returning success response
-		} catch (error) {
-			if (error instanceof Error) {
-				return ApiResponse.fail(
-					res,
-					null,
-					errorCode.ERDTTD0009,
-					error.message,
-				); // Handling registration error
-			}
-			throw new HttpException(
-				error.message,
-				HttpStatus.INTERNAL_SERVER_ERROR,
-			); // Throwing internal server error
-		}
-	}
-
-	/**
 	 * @route POST /auth/forgot-password
 	 * @description Handles forgot password requests by generating a reset token and sending recovery instructions to the user's email.
 	 * @param {Response} res - The Express response object used to send the response.
@@ -484,6 +452,30 @@ export class AuthControllerV10 {
 					errorCode.ERDTTD0001,
 					error.message,
 				); // Handling reset password error
+			}
+			throw new HttpException(
+				error.message,
+				HttpStatus.INTERNAL_SERVER_ERROR,
+			); // Throwing internal server error
+		}
+	}
+
+	@Post('/login-nik')
+	async loginNik(
+		@Req() req: Request,
+		@Res() res: Response,
+	): Promise<Response> {
+		try {
+			const data = await this.loginNikUsecase.login(req, res);
+			return ApiResponse.success(res, data, successCode.SCDTDT0011);
+		} catch (error) {
+			if (error instanceof Error) {
+				return ApiResponse.fail(
+					res,
+					null,
+					errorCode.ERDTTD0001,
+					error.message,
+				); // Handling login error
 			}
 			throw new HttpException(
 				error.message,
