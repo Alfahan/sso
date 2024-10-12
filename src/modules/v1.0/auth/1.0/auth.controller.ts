@@ -480,9 +480,9 @@ export class AuthControllerV10 {
 			if (error instanceof Error) {
 				return ApiResponse.fail(
 					res,
+					null,
+					errorCode.ERDTTD0001,
 					error.message,
-					errorCode.ERDTTD0002,
-					error.stack,
 				); // Handling reset password error
 			}
 			throw new HttpException(

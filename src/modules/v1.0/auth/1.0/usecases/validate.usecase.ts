@@ -178,12 +178,14 @@ export class ValidateUseCase {
 			device: agent.device.toString(),
 		});
 
-		if (find && find.expires_at < currentTime) {
-			await this.repository.updateCodeStatus(
-				'auth_codes',
-				TOKEN_INVALID,
-				find.id,
-			);
+		if (!find || find.expires_at < currentTime) {
+			if (find) {
+				await this.repository.updateCodeStatus(
+					'auth_codes',
+					TOKEN_INVALID,
+					find.id,
+				);
+			}
 			return {
 				is_expired: true,
 			};

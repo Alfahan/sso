@@ -48,10 +48,10 @@ export class LoginUseCase {
 		}
 
 		// Process token or OTP if password is valid
-		return await this.processTokenOrOtp(user, req, geo, agent, api_key_id);
+		return await this.processCodeOrOtp(user, req, geo, agent, api_key_id);
 	}
 
-	private async processTokenOrOtp(
+	private async processCodeOrOtp(
 		user: any,
 		req: Request,
 		geo: any,

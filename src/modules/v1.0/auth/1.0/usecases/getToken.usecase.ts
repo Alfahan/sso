@@ -77,7 +77,7 @@ export class GetTokenUseCase {
 				req,
 				geo,
 				agent,
-				'LOGIN',
+				'LOGIN_SUCCESS',
 				findCode.user_id,
 			);
 
