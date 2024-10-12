@@ -36,7 +36,12 @@ export class GetTokenUseCase {
 
 		// Check if code is valid and not expired
 		if (new Date() > findCode.expires_at) {
-			await this.handleFailedAttempt(findCode);
+			await this.helper.incrementFailedAttempts(findCode.user_id);
+			await this.repository.updateCodeStatus(
+				'auth_codes',
+				TOKEN_INVALID,
+				findCode.ac_id,
+			);
 			await this.helper.logAuthHistory(
 				req,
 				geo,
@@ -139,16 +144,5 @@ export class GetTokenUseCase {
 		await this.helper.resetFailedAttempts(findCode.user_id);
 
 		return { access_token: accessToken, refresh_token: refreshToken };
-	}
-
-	private async handleFailedAttempt(findCode: any) {
-		if (findCode) {
-			await this.helper.incrementFailedAttempts(findCode.user_id);
-			await this.repository.updateCodeStatus(
-				'auth_codes',
-				TOKEN_INVALID,
-				findCode.ac_id,
-			);
-		}
 	}
 }

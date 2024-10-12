@@ -68,6 +68,51 @@ export class VerificationOtpUseCase {
 			throw new UnauthorizedException('OTP Expired');
 		}
 
+		// Check for existing code
+		const existingCode = await this.repository.checkValidateCode(
+			'auth_codes',
+			{
+				user_id: findOtp.user_id,
+				api_key_id,
+				geolocation: geo
+					? `${geo.city}, ${geo.region}, ${geo.country}`
+					: 'Unknown',
+				country: geo?.country || 'Unknown',
+				browser: agent.toAgent(),
+				os_type: agent.os.toString(),
+				device: agent.device.toString(),
+			},
+		);
+
+		if (existingCode) {
+			if (existingCode.expires_at < currentTime) {
+				await this.repository.updateCodeStatus(
+					'auth_codes',
+					TOKEN_INVALID,
+					existingCode.id,
+				);
+				const { code } = await this.helper.setCode(
+					req,
+					findOtp.id,
+					api_key_id,
+					geo,
+					agent,
+				);
+				await this.helper.resetFailedAttempts(findOtp.id);
+				return { code: code };
+			}
+
+			await this.helper.logAuthHistory(
+				req,
+				geo,
+				agent,
+				'LOGIN_SUCCESS',
+				findOtp.id,
+			);
+			await this.helper.resetFailedAttempts(findOtp.id);
+			return { code: existingCode.code };
+		}
+
 		// Generate a new code for the user and save it to the database
 		const { code } = await this.helper.setCode(
 			req,
