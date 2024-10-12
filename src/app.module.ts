@@ -8,6 +8,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { ApiKeyModuleV10 } from './modules/v1.0/apiKey/1.0/apiKey.module';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { RedisConfig } from './configs/redis.config';
+import { RegisterModuelV10 } from './modules/v1.0/register/1.0/register.module';
 
 @Module({
 	imports: [
@@ -51,6 +52,7 @@ import { RedisConfig } from './configs/redis.config';
 		// Import Auth module for handling authentication
 		ApiKeyModuleV10,
 		AuthModuleV10,
+		RegisterModuelV10,
 	],
 	// Register the main application controller
 	controllers: [AppController],
